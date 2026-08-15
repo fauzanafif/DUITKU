@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:duitku/core/finance/date_range.dart';
+import 'package:duitku/core/utils/formatters.dart';
 import 'package:duitku/core/finance/finance_calculator.dart';
 import 'package:duitku/core/finance/transaction_validator.dart';
 import 'package:duitku/data/database/in_memory_database.dart';
@@ -25,6 +26,17 @@ void main() {
     categories = CategoryRepository(db);
     transactions = TransactionRepository(db);
     budgets = BudgetRepository(db);
+  });
+
+  test('currency formatter respects the selected currency code', () {
+    expect(
+      Formatters.currency(1234567, currencyCode: 'USD'),
+      r'$1,234,567',
+    );
+    expect(
+      Formatters.currency(1234567, currencyCode: 'EUR'),
+      '€1,234,567',
+    );
   });
 
   Future<double> balanceOf(Account account) async =>

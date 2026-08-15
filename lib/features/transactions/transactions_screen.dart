@@ -176,7 +176,7 @@ class _SummaryStrip extends StatelessWidget {
                       fontSize: 12,
                       color: Theme.of(context).colorScheme.onSurfaceVariant)),
               Text(
-                Formatters.compactCurrency(value),
+                Formatters.compactCurrency(value, currencyCode: 'IDR'),
                 style: TextStyle(fontWeight: FontWeight.w700, color: color),
               ),
             ],

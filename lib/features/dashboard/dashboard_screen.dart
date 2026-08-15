@@ -57,6 +57,7 @@ class DashboardScreen extends ConsumerWidget {
                     income: income,
                     expense: expense,
                     month: month,
+                    currencyCode: ref.settings.currencyCode,
                     onPickMonth: () => _pickMonth(context, ref, month),
                   ),
                   const SizedBox(height: 20),
@@ -81,7 +82,10 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                     )
                   else
-                    _AccountsStrip(snapshot: snapshot),
+                    _AccountsStrip(
+                      snapshot: snapshot,
+                      currencyCode: ref.settings.currencyCode,
+                    ),
                   const SizedBox(height: 20),
                   const _QuickActions(),
                   const SizedBox(height: 20),
@@ -184,6 +188,7 @@ class _BalanceCard extends StatelessWidget {
     required this.income,
     required this.expense,
     required this.month,
+    required this.currencyCode,
     required this.onPickMonth,
   });
 
@@ -191,6 +196,7 @@ class _BalanceCard extends StatelessWidget {
   final double income;
   final double expense;
   final DateTime month;
+  final String currencyCode;
   final VoidCallback onPickMonth;
 
   @override
@@ -243,7 +249,7 @@ class _BalanceCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            Formatters.currency(total),
+            Formatters.currency(total, currencyCode: currencyCode),
             style: TextStyle(
               color: scheme.onPrimary,
               fontSize: 32,
@@ -258,6 +264,7 @@ class _BalanceCard extends StatelessWidget {
                   label: 'Pemasukan',
                   value: income,
                   icon: Icons.south_west,
+                  currencyCode: currencyCode,
                 ),
               ),
               Expanded(
@@ -265,6 +272,7 @@ class _BalanceCard extends StatelessWidget {
                   label: 'Pengeluaran',
                   value: expense,
                   icon: Icons.north_east,
+                  currencyCode: currencyCode,
                 ),
               ),
               Expanded(
@@ -272,6 +280,7 @@ class _BalanceCard extends StatelessWidget {
                   label: 'Sisa',
                   value: income - expense,
                   icon: Icons.savings_outlined,
+                  currencyCode: currencyCode,
                 ),
               ),
             ],
@@ -287,11 +296,13 @@ class _MiniStat extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
+    required this.currencyCode,
   });
 
   final String label;
   final double value;
   final IconData icon;
+  final String currencyCode;
 
   @override
   Widget build(BuildContext context) {
@@ -307,7 +318,7 @@ class _MiniStat extends StatelessWidget {
               color: onPrimary.withValues(alpha: 0.85), fontSize: 12),
         ),
         Text(
-          Formatters.compactCurrency(value),
+          Formatters.compactCurrency(value, currencyCode: currencyCode),
           style: TextStyle(
             color: onPrimary,
             fontWeight: FontWeight.w700,
@@ -320,9 +331,13 @@ class _MiniStat extends StatelessWidget {
 }
 
 class _AccountsStrip extends StatelessWidget {
-  const _AccountsStrip({required this.snapshot});
+  const _AccountsStrip({
+    required this.snapshot,
+    required this.currencyCode,
+  });
 
   final FinanceSnapshot snapshot;
+  final String currencyCode;
 
   @override
   Widget build(BuildContext context) {
@@ -371,7 +386,7 @@ class _AccountsStrip extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    Formatters.currency(snapshot.balanceOf(account.id)),
+                    Formatters.currency(snapshot.balanceOf(account.id), currencyCode: currencyCode),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(

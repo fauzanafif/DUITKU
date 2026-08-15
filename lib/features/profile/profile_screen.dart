@@ -14,6 +14,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.settings;
     final snapshot = ref.watch(financeSnapshotProvider).valueOrNull;
+    final currencyCode = settings.currencyCode;
     final name = settings.userName.isEmpty ? 'Pengguna DUITKU' : settings.userName;
 
     return Scaffold(
@@ -42,7 +43,7 @@ class ProfileScreen extends ConsumerWidget {
                               fontSize: 18, fontWeight: FontWeight.w700)),
                       Text(
                         'Total saldo '
-                        '${Formatters.currency(snapshot?.totalBalance ?? 0)}',
+                        '${Formatters.currency(snapshot?.totalBalance ?? 0, currencyCode: currencyCode)}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

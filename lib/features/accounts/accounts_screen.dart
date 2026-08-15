@@ -5,6 +5,7 @@ import 'package:duitku/core/utils/app_icons.dart';
 import 'package:duitku/core/constants/app_defaults.dart';
 import 'package:duitku/core/providers/finance_controller.dart';
 import 'package:duitku/core/providers/finance_snapshot.dart';
+import 'package:duitku/core/providers/providers.dart';
 import 'package:duitku/core/utils/formatters.dart';
 import 'package:duitku/data/models/account.dart';
 import 'package:duitku/widgets/amount_field.dart';
@@ -18,6 +19,7 @@ class AccountsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final snapshotAsync = ref.watch(financeSnapshotProvider);
+    final currencyCode = ref.settings.currencyCode;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Akun')),
@@ -54,7 +56,7 @@ class AccountsScreen extends ConsumerWidget {
                           style: TextStyle(fontWeight: FontWeight.w700)),
                     ),
                     Text(
-                      Formatters.currency(snapshot.totalBalance),
+                      Formatters.currency(snapshot.totalBalance, currencyCode: currencyCode),
                       style: const TextStyle(
                           fontSize: 20, fontWeight: FontWeight.w800),
                     ),
@@ -66,6 +68,7 @@ class AccountsScreen extends ConsumerWidget {
                 _AccountCard(
                   account: account,
                   balance: snapshot.balanceOf(account.id),
+                  currencyCode: currencyCode,
                   onEdit: () =>
                       showAccountEditor(context, ref, account: account),
                   onDelete: () => _confirmDelete(context, ref, account),
@@ -118,12 +121,14 @@ class _AccountCard extends StatelessWidget {
   const _AccountCard({
     required this.account,
     required this.balance,
+    required this.currencyCode,
     required this.onEdit,
     required this.onDelete,
   });
 
   final Account account;
   final double balance;
+  final String currencyCode;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -166,12 +171,12 @@ class _AccountCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                Formatters.currency(balance),
+                Formatters.currency(balance, currencyCode: currencyCode),
                 style: const TextStyle(
                     fontSize: 16, fontWeight: FontWeight.w700),
               ),
               Text(
-                'Saldo awal ${Formatters.currency(account.initialBalance)}',
+                'Saldo awal ${Formatters.currency(account.initialBalance, currencyCode: currencyCode)}',
                 style: Theme.of(context).textTheme.labelSmall,
               ),
             ],

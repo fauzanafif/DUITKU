@@ -136,7 +136,7 @@ class BudgetScreen extends ConsumerWidget {
   }
 }
 
-class _BudgetCard extends StatelessWidget {
+class _BudgetCard extends ConsumerWidget {
   const _BudgetCard({
     required this.status,
     required this.category,
@@ -164,7 +164,8 @@ class _BudgetCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currencyCode = ref.settings.currencyCode;
     return SectionCard(
       onTap: onEdit,
       child: Column(
@@ -202,15 +203,15 @@ class _BudgetCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Terpakai ${Formatters.currency(status.used)} dari '
-                  '${Formatters.currency(status.budget.amount)}',
+                  'Terpakai ${Formatters.currency(status.used, currencyCode: currencyCode)} dari '
+                  '${Formatters.currency(status.budget.amount, currencyCode: currencyCode)}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
               Text(
                 status.remaining >= 0
-                    ? 'Sisa ${Formatters.currency(status.remaining)}'
-                    : 'Lebih ${Formatters.currency(status.remaining.abs())}',
+                    ? 'Sisa ${Formatters.currency(status.remaining, currencyCode: currencyCode)}'
+                    : 'Lebih ${Formatters.currency(status.remaining.abs(), currencyCode: currencyCode)}',
                 style: TextStyle(color: _color, fontWeight: FontWeight.w600),
               ),
             ],

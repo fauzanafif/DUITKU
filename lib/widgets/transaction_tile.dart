@@ -28,14 +28,14 @@ IconData transactionIcon(TransactionType type) {
   }
 }
 
-String signedAmountLabel(TransactionRecord tx) {
+String signedAmountLabel(TransactionRecord tx, {String currencyCode = 'IDR'}) {
   switch (tx.type) {
     case TransactionType.income:
-      return '+ ${Formatters.currency(tx.amount)}';
+      return '+ ${Formatters.currency(tx.amount, currencyCode: currencyCode)}';
     case TransactionType.expense:
-      return '- ${Formatters.currency(tx.amount)}';
+      return '- ${Formatters.currency(tx.amount, currencyCode: currencyCode)}';
     case TransactionType.transfer:
-      return Formatters.currency(tx.amount);
+      return Formatters.currency(tx.amount, currencyCode: currencyCode);
   }
 }
 
@@ -45,6 +45,7 @@ class TransactionTile extends StatelessWidget {
     required this.transaction,
     required this.accounts,
     required this.categories,
+    this.currencyCode = 'IDR',
     this.onTap,
     this.showTime = true,
   });
@@ -52,6 +53,7 @@ class TransactionTile extends StatelessWidget {
   final TransactionRecord transaction;
   final Map<String, Account> accounts;
   final Map<String, Category> categories;
+  final String currencyCode;
   final VoidCallback? onTap;
   final bool showTime;
 
@@ -99,7 +101,7 @@ class TransactionTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Text(
-            signedAmountLabel(transaction),
+            signedAmountLabel(transaction, currencyCode: currencyCode),
             style: TextStyle(
               fontWeight: FontWeight.w700,
               color: color,

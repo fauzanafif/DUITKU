@@ -78,6 +78,7 @@ class _GoalCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final color = Color(goal.colorValue);
+    final currencyCode = ref.settings.currencyCode;
     return SectionCard(
       onTap: () => showModalBottomSheet<void>(
         context: context,
@@ -136,8 +137,8 @@ class _GoalCard extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            '${Formatters.currency(goal.currentAmount)} dari '
-            '${Formatters.currency(goal.targetAmount)}',
+            '${Formatters.currency(goal.currentAmount, currencyCode: currencyCode)} dari '
+            '${Formatters.currency(goal.targetAmount, currencyCode: currencyCode)}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 10),
@@ -221,7 +222,7 @@ class _GoalCard extends ConsumerWidget {
             const SizedBox(height: 8),
             for (final contribution in goal.contributions.reversed)
               ListTile(
-                title: Text(Formatters.currency(contribution.amount)),
+                title: Text(Formatters.currency(contribution.amount, currencyCode: ref.settings.currencyCode)),
                 subtitle: Text(Formatters.dateTime(contribution.date)),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_outline),
