@@ -100,7 +100,7 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 20),
           Center(
             child: Text(
-              'DUITKU • Kelola uangmu, capai tujuanmu.',
+              'DUITKU •  uangmu, capai tujuanmu.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
