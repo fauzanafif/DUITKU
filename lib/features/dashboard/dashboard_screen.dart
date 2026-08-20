@@ -170,11 +170,10 @@ class _Greeting extends StatelessWidget {
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
-              padding: const EdgeInsets.all(12),
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -330,7 +329,7 @@ class _MiniStat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final onPrimary = Theme.of(context).colorScheme.onPrimary;
-    final iconColor = color ?? onPrimary.withValues(alpha: 0.9);
+    final iconColor = onPrimary.withValues(alpha: 0.9);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
