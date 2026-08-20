@@ -170,14 +170,11 @@ class _Greeting extends StatelessWidget {
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
-            ],
+              padding: const EdgeInsets.all(12),
+            ),
           ),
-        ),
-        IconButton.filledTonal(
-          onPressed: () => context.push('/settings'),
-          icon: const Icon(Icons.settings_outlined),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -203,14 +200,26 @@ class _BalanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [scheme.primary, scheme.primary.withValues(alpha: 0.78)],
+          colors: [
+            scheme.primary,
+            scheme.primary.withValues(alpha: 0.85),
+            scheme.primary.withValues(alpha: 0.7),
+          ],
+          stops: const [0.0, 0.5, 1.0],
         ),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.3),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,42 +230,54 @@ class _BalanceCard extends StatelessWidget {
                 child: Text(
                   'Total Saldo',
                   style: TextStyle(
-                    color: scheme.onPrimary.withValues(alpha: 0.85),
-                    fontWeight: FontWeight.w500,
+                    color: scheme.onPrimary.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
                   ),
                 ),
               ),
               InkWell(
                 onTap: onPickMonth,
                 borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Row(
                     children: [
                       Text(
                         Formatters.monthYear(month),
                         style: TextStyle(
-                            color: scheme.onPrimary,
-                            fontWeight: FontWeight.w600),
+                          color: scheme.onPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
                       ),
-                      Icon(Icons.expand_more, color: scheme.onPrimary, size: 18),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.expand_more,
+                        color: scheme.onPrimary,
+                        size: 16,
+                      ),
                     ],
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 12),
           Text(
             Formatters.currency(total, currencyCode: currencyCode),
             style: TextStyle(
               color: scheme.onPrimary,
-              fontSize: 32,
-              fontWeight: FontWeight.w800,
+              fontSize: 36,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -1,
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
@@ -267,6 +288,7 @@ class _BalanceCard extends StatelessWidget {
                   currencyCode: currencyCode,
                 ),
               ),
+              const SizedBox(width: 16),
               Expanded(
                 child: _MiniStat(
                   label: 'Pengeluaran',
@@ -275,6 +297,7 @@ class _BalanceCard extends StatelessWidget {
                   currencyCode: currencyCode,
                 ),
               ),
+              const SizedBox(width: 16),
               Expanded(
                 child: _MiniStat(
                   label: 'Sisa',
@@ -307,22 +330,34 @@ class _MiniStat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final onPrimary = Theme.of(context).colorScheme.onPrimary;
+    final iconColor = color ?? onPrimary.withValues(alpha: 0.9);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: onPrimary.withValues(alpha: 0.9), size: 18),
-        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: iconColor, size: 16),
+        ),
+        const SizedBox(height: 8),
         Text(
           label,
           style: TextStyle(
-              color: onPrimary.withValues(alpha: 0.85), fontSize: 12),
+            color: onPrimary.withValues(alpha: 0.85),
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         Text(
           Formatters.compactCurrency(value, currencyCode: currencyCode),
           style: TextStyle(
             color: onPrimary,
-            fontWeight: FontWeight.w700,
-            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            letterSpacing: -0.5,
           ),
         ),
       ],
@@ -415,25 +450,40 @@ class _QuickActions extends StatelessWidget {
     }) {
       return Expanded(
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
             child: Column(
               children: [
                 Container(
-                  width: 46,
-                  height: 46,
+                  width: 52,
+                  height: 52,
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(15),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        color.withValues(alpha: 0.15),
+                        color.withValues(alpha: 0.08),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: color.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
                   ),
-                  child: Icon(icon, color: color),
+                  child: Icon(icon, color: color, size: 24),
                 ),
-                const SizedBox(height: 8),
-                Text(label,
-                    style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 10),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
@@ -442,35 +492,39 @@ class _QuickActions extends StatelessWidget {
     }
 
     return Card(
-      child: Row(
-        children: [
-          item(
-            icon: Icons.atm,
-            label: 'Tarik Cash',
-            color: AppColors.brand,
-            onTap: () => context.push(
-              '/transactions/add?type=${TransactionType.transfer.name}&mode=withdraw',
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            item(
+              icon: Icons.atm,
+              label: 'Tarik Cash',
+              color: AppColors.brand,
+              onTap: () => context.push(
+                '/transactions/add?type=${TransactionType.transfer.name}&mode=withdraw',
+              ),
             ),
-          ),
-          item(
-            icon: Icons.pie_chart_outline,
-            label: 'Budget',
-            color: AppColors.warning,
-            onTap: () => context.push('/budget'),
-          ),
-          item(
-            icon: Icons.flag_outlined,
-            label: 'Target',
-            color: AppColors.income,
-            onTap: () => context.push('/savings'),
-          ),
-          item(
-            icon: Icons.add_circle_outline,
-            label: 'Tambah',
-            color: AppColors.transfer,
-            onTap: () => showAddTransactionSheet(context),
-          ),
-        ],
+            item(
+              icon: Icons.pie_chart_outline,
+              label: 'Budget',
+              color: AppColors.warning,
+              onTap: () => context.push('/budget'),
+            ),
+            item(
+              icon: Icons.flag_outlined,
+              label: 'Target',
+              color: AppColors.income,
+              onTap: () => context.push('/savings'),
+            ),
+            item(
+              icon: Icons.add_circle_outline,
+              label: 'Tambah',
+              color: AppColors.transfer,
+              onTap: () => showAddTransactionSheet(context),
+            ),
+          ],
+        ),
       ),
     );
   }
