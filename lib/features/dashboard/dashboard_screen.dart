@@ -57,6 +57,7 @@ class DashboardScreen extends ConsumerWidget {
                     income: income,
                     expense: expense,
                     month: month,
+                    currencyCode: ref.settings.currencyCode,
                     onPickMonth: () => _pickMonth(context, ref, month),
                   ),
                   const SizedBox(height: 20),
@@ -81,7 +82,10 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                     )
                   else
-                    _AccountsStrip(snapshot: snapshot),
+                    _AccountsStrip(
+                      snapshot: snapshot,
+                      currencyCode: ref.settings.currencyCode,
+                    ),
                   const SizedBox(height: 20),
                   const _QuickActions(),
                   const SizedBox(height: 20),
@@ -150,54 +154,21 @@ class _Greeting extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.primary.withValues(alpha: 0.08),
-            theme.colorScheme.primary.withValues(alpha: 0.02),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  userName.isEmpty ? 'Halo!' : 'Halo, $userName 👋',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 24,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Kelola uangmu, capai tujuanmu.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: IconButton(
-              onPressed: () => context.push('/settings'),
-              icon: Icon(
-                Icons.settings_outlined,
-                color: theme.colorScheme.primary,
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                userName.isEmpty ? 'Halo!' : 'Halo, $userName',
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              Text(
+                'Create by ODEV || 2026.',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               padding: const EdgeInsets.all(12),
             ),
@@ -214,6 +185,7 @@ class _BalanceCard extends StatelessWidget {
     required this.income,
     required this.expense,
     required this.month,
+    required this.currencyCode,
     required this.onPickMonth,
   });
 
@@ -221,6 +193,7 @@ class _BalanceCard extends StatelessWidget {
   final double income;
   final double expense;
   final DateTime month;
+  final String currencyCode;
   final VoidCallback onPickMonth;
 
   @override
@@ -296,7 +269,7 @@ class _BalanceCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            Formatters.currency(total),
+            Formatters.currency(total, currencyCode: currencyCode),
             style: TextStyle(
               color: scheme.onPrimary,
               fontSize: 36,
@@ -311,7 +284,8 @@ class _BalanceCard extends StatelessWidget {
                 child: _MiniStat(
                   label: 'Pemasukan',
                   value: income,
-                  icon: Icons.arrow_downward,
+                  icon: Icons.south_west,
+                  currencyCode: currencyCode,
                 ),
               ),
               const SizedBox(width: 16),
@@ -319,7 +293,8 @@ class _BalanceCard extends StatelessWidget {
                 child: _MiniStat(
                   label: 'Pengeluaran',
                   value: expense,
-                  icon: Icons.arrow_upward,
+                  icon: Icons.north_east,
+                  currencyCode: currencyCode,
                 ),
               ),
               const SizedBox(width: 16),
@@ -327,7 +302,8 @@ class _BalanceCard extends StatelessWidget {
                 child: _MiniStat(
                   label: 'Sisa',
                   value: income - expense,
-                  icon: Icons.account_balance_wallet,
+                  icon: Icons.savings_outlined,
+                  currencyCode: currencyCode,
                 ),
               ),
             ],
@@ -343,13 +319,13 @@ class _MiniStat extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
-    this.color,
+    required this.currencyCode,
   });
 
   final String label;
   final double value;
   final IconData icon;
-  final Color? color;
+  final String currencyCode;
 
   @override
   Widget build(BuildContext context) {
@@ -376,7 +352,7 @@ class _MiniStat extends StatelessWidget {
           ),
         ),
         Text(
-          Formatters.compactCurrency(value),
+          Formatters.compactCurrency(value, currencyCode: currencyCode),
           style: TextStyle(
             color: onPrimary,
             fontWeight: FontWeight.w800,
@@ -390,9 +366,13 @@ class _MiniStat extends StatelessWidget {
 }
 
 class _AccountsStrip extends StatelessWidget {
-  const _AccountsStrip({required this.snapshot});
+  const _AccountsStrip({
+    required this.snapshot,
+    required this.currencyCode,
+  });
 
   final FinanceSnapshot snapshot;
+  final String currencyCode;
 
   @override
   Widget build(BuildContext context) {
@@ -441,7 +421,7 @@ class _AccountsStrip extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    Formatters.currency(snapshot.balanceOf(account.id)),
+                    Formatters.currency(snapshot.balanceOf(account.id), currencyCode: currencyCode),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(

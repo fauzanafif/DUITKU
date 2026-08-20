@@ -45,6 +45,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   int _page = 0;
   bool _showForm = false;
   AccountType _accountType = AccountType.bank;
+  String _currencyCode = 'IDR';
   bool _submitting = false;
 
   @override
@@ -383,37 +384,113 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: FilledButton(
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+          child: FilledButton(
+            onPressed: () {
+              if (_page < _slides.length - 1) {
+                _pageController.nextPage(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOut,
+                );
+              } else {
+                setState(() => _showForm = true);
+              }
+            },
+            child: Text(
+                _page < _slides.length - 1 ? 'Lanjut' : 'Mulai Sekarang'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildForm(ThemeData theme) {
+    final currencyItems = [
+      ('IDR', 'Rupiah Indonesia'),
+      ('USD', 'US Dollar'),
+      ('EUR', 'Euro'),
+    ];
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('DUITKU',
+                    style: theme.textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w800)),
+                Text('Kelola uangmu, capai tujuanmu.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant)),
+                const SizedBox(height: 28),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Nama kamu'),
+                  textCapitalization: TextCapitalization.words,
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Nama wajib diisi'
+                      : null,
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  initialValue: _currencyCode,
+                  decoration: const InputDecoration(labelText: 'Mata uang'),
+                  items: [
+                    for (final item in currencyItems)
+                      DropdownMenuItem(
+                        value: item.$1,
+                        child: Text('${item.$1} (${item.$2})'),
+                      ),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => _currencyCode = value ?? 'IDR'),
+                ),
+                const SizedBox(height: 24),
+                Text('Akun pertama',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _accountNameController,
+                  decoration: const InputDecoration(labelText: 'Nama akun'),
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Nama akun wajib diisi'
+                      : null,
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<AccountType>(
+                  initialValue: _accountType,
+                  decoration: const InputDecoration(labelText: 'Tipe akun'),
+                  items: [
+                    for (final type in AccountType.values)
+                      DropdownMenuItem(value: type, child: Text(type.label)),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => _accountType = value ?? AccountType.bank),
+                ),
+                const SizedBox(height: 14),
+                AmountField(controller: _balanceController, label: 'Saldo awal'),
+                const SizedBox(height: 28),
+                FilledButton(
                   onPressed: _submitting ? null : _submit,
-                  style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
                   child: _submitting
                       ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text(
-                          'Selesai',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
+                      : const Text('Selesai'),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -437,6 +514,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     await ref.read(settingsProvider.notifier).mutate(
           (settings) => settings.copyWith(
             userName: _nameController.text.trim(),
+            currencyCode: _currencyCode,
             onboardingCompleted: true,
           ),
         );
