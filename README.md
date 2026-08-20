@@ -1,119 +1,99 @@
 # DUITKU
 
-DUITKU adalah aplikasi pengelola keuangan pribadi yang dibangun dengan Flutter. Aplikasi ini dirancang untuk membantu pengguna mencatat pemasukan, pengeluaran, transfer antar rekening, pengelolaan anggaran, target tabungan, serta melihat laporan keuangan secara ringkas dan lokal.
+DUITKU adalah aplikasi pengelola keuangan pribadi berbasis Flutter. Aplikasi ini membantu pengguna memantau kondisi keuangan, mencatat transaksi, mengatur anggaran, dan merencanakan target tabungan dengan penyimpanan lokal.
 
-## Fitur utama
+## Fitur
 
-- Dashboard ringkas dengan saldo, pemasukan, dan pengeluaran
-- Catatan transaksi dengan tipe Income, Expense, dan Transfer
-- Manajemen akun keuangan multi-rekening
+- Dashboard saldo, pemasukan, pengeluaran, dan ringkasan periode
+- Transaksi `Income`, `Expense`, dan `Transfer` antar akun
+- Banyak akun keuangan, seperti rekening bank dan kas
 - Kategori pemasukan dan pengeluaran
-- Anggaran bulanan per kategori
-- Target tabungan dengan progress tracking
-- Laporan keuangan dan breakdown kategori
-- Tema terang dan gelap
-- Penyimpanan lokal berbasis Hive untuk data offline-first
+- Anggaran bulanan berdasarkan kategori
+- Target tabungan dengan pelacakan progres
+- Laporan dan breakdown transaksi berdasarkan kategori
+- Onboarding, profil, pengaturan tema, serta pengaturan mata uang
+- Proteksi aplikasi dengan autentikasi lokal jika tersedia di perangkat
+- Notifikasi lokal
+- Penyimpanan offline-first menggunakan Hive
 
-## Tech stack
+## Teknologi
 
-- Flutter
-- Dart
-- Riverpod
-- GoRouter
-- Hive
-- Intl
-- fl_chart
+- Flutter dan Dart
 - Material 3
+- Riverpod untuk state management
+- GoRouter untuk navigasi
+- Hive CE untuk database lokal
+- `fl_chart` untuk visualisasi laporan
+- `intl` untuk format angka, mata uang, dan tanggal
+- `local_auth` untuk autentikasi biometrik atau perangkat
+- `share_plus` untuk berbagi data atau laporan
+- `flutter_local_notifications` untuk notifikasi lokal
 
 ## Struktur proyek
 
 ```text
 lib/
-├── app/
-│   ├── duitku_app.dart
-│   └── router.dart
-├── core/
-│   ├── finance/
-│   ├── providers/
-│   └── theme/
-├── data/
-│   ├── database/
-│   ├── models/
-│   └── repositories/
-├── features/
-│   ├── accounts/
-│   ├── budget/
-│   ├── dashboard/
-│   ├── profile/
-│   ├── reports/
-│   ├── savings/
-│   ├── settings/
-│   └── transactions/
-├── main.dart
-└── utils/
+├── app/             # Konfigurasi aplikasi dan routing
+├── core/            # Logika finansial, provider, tema, dan utilitas
+├── data/            # Database, model, dan repository
+├── features/        # Modul fitur aplikasi
+│   ├── accounts/    ├── budget/       ├── dashboard/
+│   ├── onboarding/  ├── profile/      ├── reports/
+│   ├── savings/     ├── security/     ├── settings/
+│   ├── shell/       └── transactions/
+├── widgets/         # Widget yang digunakan bersama
+└── main.dart        # Entry point aplikasi
 
 test/
-├── finance_test.dart
-└── app_test.dart
+├── app_test.dart
+└── finance_test.dart
 ```
 
 ## Persyaratan
 
-Pastikan Flutter SDK sudah terinstall dan tersedia di PATH.
+- Flutter SDK yang mendukung Dart `^3.13.0`
+- Android Studio dan Android SDK untuk target Android
+- Xcode untuk target iOS atau macOS
+- Chrome untuk menjalankan target web
 
-Pada Windows, biasanya digunakan:
+Pastikan Flutter tersedia di `PATH`, lalu cek instalasinya:
 
 ```powershell
-$env:PATH = 'C:\src\flutter\bin;' + $env:PATH
+flutter doctor
 flutter --version
 ```
 
-## Cara menjalankan
-
-1. Clone project
-2. Install dependency
+## Menjalankan proyek
 
 ```powershell
-cd C:\Users\user\Documents\DUITKU
-$env:PATH = 'C:\src\flutter\bin;' + $env:PATH
+git clone <url-repositori>
+cd DUITKU
 flutter pub get
-```
-
-3. Jalankan aplikasi di Chrome atau emulator
-
-```powershell
+flutter devices
 flutter run -d chrome
 ```
 
-Untuk Android atau iOS, sesuaikan target device Anda:
+Gunakan device lain dengan mengganti target pada perintah terakhir, misalnya `flutter run -d windows` atau `flutter run -d android`.
 
-```powershell
-flutter devices
-flutter run
-```
-
-## Verifikasi proyek
-
-Proyek saat ini sudah diverifikasi dengan:
+## Pengujian dan analisis
 
 ```powershell
 flutter test
-flutter analyze --no-fatal-infos
+flutter analyze
 ```
 
-Status terbaru: semua test bisnis utama berjalan lancar dan analyzer tidak menemukan issue.
+Test mencakup pemuatan aplikasi, formatter mata uang, perhitungan saldo, transaksi, transfer, serta status anggaran.
 
-## Catatan pengembangan
+## Penyimpanan data
 
-Proyek ini menggunakan pendekatan local-first, sehingga data tersimpan di perangkat secara offline. Data utama dikelola lewat Hive dan dipantau melalui provider state management menggunakan Riverpod.
+Data aplikasi disimpan secara lokal di perangkat menggunakan Hive. Saat ini belum ada sinkronisasi cloud, sehingga penghapusan data aplikasi atau perangkat dapat menghilangkan data yang tersimpan. Fitur backup/restore dan export laporan dapat ditambahkan pada pengembangan berikutnya.
 
 ## Roadmap
 
-- Penambahan backup/restore data
-- Keamanan tambahan dengan PIN atau biometric
-- Export laporan CSV/PDF
-- Notifikasi pengingat transaksi dan anggaran
-- Peningkatan UX untuk onboarding dan migration data
+- Backup dan restore data
+- Export laporan ke CSV atau PDF
+- Pengingat transaksi dan anggaran yang lebih fleksibel
+- Penyempurnaan onboarding dan migrasi data
 
 ## Lisensi
 

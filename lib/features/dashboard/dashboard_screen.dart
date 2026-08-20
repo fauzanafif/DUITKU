@@ -166,7 +166,7 @@ class _Greeting extends StatelessWidget {
                     ?.copyWith(fontWeight: FontWeight.w700),
               ),
               Text(
-                'Kelola uangmu, capai tujuanmu.',
+                'Create by ODEV || 2026.',
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
