@@ -9,11 +9,13 @@ import 'package:duitku/data/models/account.dart';
 import 'package:duitku/data/models/app_settings.dart';
 import 'package:duitku/data/models/budget.dart';
 import 'package:duitku/data/models/category.dart';
+import 'package:duitku/data/models/allowance_limit.dart';
 import 'package:duitku/data/models/debt.dart';
 import 'package:duitku/data/models/recurring_rule.dart';
 import 'package:duitku/data/models/saving_goal.dart';
 import 'package:duitku/data/models/transaction.dart';
 import 'package:duitku/data/repositories/account_repository.dart';
+import 'package:duitku/data/repositories/allowance_limit_repository.dart';
 import 'package:duitku/data/repositories/budget_repository.dart';
 import 'package:duitku/data/repositories/category_repository.dart';
 import 'package:duitku/data/repositories/debt_repository.dart';
@@ -47,6 +49,9 @@ final debtRepositoryProvider = Provider<DebtRepository>(
 
 final recurringRuleRepositoryProvider = Provider<RecurringRuleRepository>(
     (ref) => RecurringRuleRepository(ref.watch(databaseProvider)));
+
+final allowanceLimitRepositoryProvider = Provider<AllowanceLimitRepository>(
+    (ref) => AllowanceLimitRepository(ref.watch(databaseProvider)));
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
     (ref) => SettingsRepository(ref.watch(databaseProvider)));
@@ -82,6 +87,9 @@ final debtsProvider = FutureProvider<List<Debt>>(
 
 final recurringRulesProvider = FutureProvider<List<RecurringRule>>(
     (ref) => ref.watch(recurringRuleRepositoryProvider).getAll());
+
+final allowanceLimitsProvider = FutureProvider<List<AllowanceLimit>>(
+    (ref) => ref.watch(allowanceLimitRepositoryProvider).getAll());
 
 /// Active rules whose next occurrence is already due. Pure read — nothing
 /// is ever booked or advanced just by looking at this list; the user must
@@ -124,6 +132,7 @@ final List<ProviderOrFamily> financialProviders = [
   savingGoalsProvider,
   debtsProvider,
   recurringRulesProvider,
+  allowanceLimitsProvider,
 ];
 
 void invalidateFinancialData(Ref ref) {

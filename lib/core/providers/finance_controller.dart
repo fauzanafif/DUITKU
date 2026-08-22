@@ -4,6 +4,7 @@ import 'package:duitku/core/providers/providers.dart';
 import 'package:duitku/data/models/account.dart';
 import 'package:duitku/data/models/budget.dart';
 import 'package:duitku/data/models/category.dart';
+import 'package:duitku/data/models/allowance_limit.dart';
 import 'package:duitku/data/models/debt.dart';
 import 'package:duitku/data/models/recurring_rule.dart';
 import 'package:duitku/data/models/saving_goal.dart';
@@ -351,6 +352,32 @@ class FinanceController {
   Future<void> skipRecurring(RecurringRule rule) async {
     await saveRecurringRule(
         rule.copyWith(nextDueDate: rule.advancedDueDate()));
+  }
+
+  Future<AllowanceLimit> createAllowanceLimit({
+    required String accountId,
+    required double limitAmount,
+    required int year,
+    required int month,
+  }) async {
+    final limit = await _ref.read(allowanceLimitRepositoryProvider).create(
+          accountId: accountId,
+          limitAmount: limitAmount,
+          year: year,
+          month: month,
+        );
+    _refresh();
+    return limit;
+  }
+
+  Future<void> saveAllowanceLimit(AllowanceLimit limit) async {
+    await _ref.read(allowanceLimitRepositoryProvider).save(limit);
+    _refresh();
+  }
+
+  Future<void> deleteAllowanceLimit(String id) async {
+    await _ref.read(allowanceLimitRepositoryProvider).delete(id);
+    _refresh();
   }
 }
 

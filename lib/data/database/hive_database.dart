@@ -4,6 +4,7 @@ import 'package:hive_ce_flutter/hive_flutter.dart';
 
 import 'package:duitku/data/database/duitku_database.dart';
 import 'package:duitku/data/models/account.dart';
+import 'package:duitku/data/models/allowance_limit.dart';
 import 'package:duitku/data/models/app_settings.dart';
 import 'package:duitku/data/models/budget.dart';
 import 'package:duitku/data/models/category.dart';
@@ -24,6 +25,7 @@ class HiveDatabase implements DuitkuDatabase {
   static const _goalsBox = 'duitku_saving_goals';
   static const _debtsBox = 'duitku_debts';
   static const _recurringRulesBox = 'duitku_recurring_rules';
+  static const _allowanceLimitsBox = 'duitku_allowance_limits';
   static const _settingsBox = 'duitku_settings';
   static const _settingsKey = 'settings';
 
@@ -34,6 +36,7 @@ class HiveDatabase implements DuitkuDatabase {
   late final Box<String> _goals;
   late final Box<String> _debts;
   late final Box<String> _recurringRules;
+  late final Box<String> _allowanceLimits;
   late final Box<String> _settings;
 
   bool _initialized = false;
@@ -49,6 +52,7 @@ class HiveDatabase implements DuitkuDatabase {
     _goals = await Hive.openBox<String>(_goalsBox);
     _debts = await Hive.openBox<String>(_debtsBox);
     _recurringRules = await Hive.openBox<String>(_recurringRulesBox);
+    _allowanceLimits = await Hive.openBox<String>(_allowanceLimitsBox);
     _settings = await Hive.openBox<String>(_settingsBox);
     _initialized = true;
   }
@@ -147,6 +151,17 @@ class HiveDatabase implements DuitkuDatabase {
   Future<void> deleteRecurringRule(String id) => _recurringRules.delete(id);
 
   @override
+  Future<List<AllowanceLimit>> readAllowanceLimits() async =>
+      _decodeAll(_allowanceLimits, AllowanceLimit.fromJson);
+
+  @override
+  Future<void> writeAllowanceLimit(AllowanceLimit limit) =>
+      _allowanceLimits.put(limit.id, jsonEncode(limit.toJson()));
+
+  @override
+  Future<void> deleteAllowanceLimit(String id) => _allowanceLimits.delete(id);
+
+  @override
   Future<AppSettings> readSettings() async {
     final raw = _settings.get(_settingsKey);
     if (raw == null) return const AppSettings();
@@ -170,5 +185,6 @@ class HiveDatabase implements DuitkuDatabase {
     await _goals.clear();
     await _debts.clear();
     await _recurringRules.clear();
+    await _allowanceLimits.clear();
   }
 }

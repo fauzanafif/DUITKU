@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:duitku/core/utils/app_icons.dart';
 import 'package:duitku/core/constants/app_defaults.dart';
+import 'package:duitku/core/finance/streak_calculator.dart';
 import 'package:duitku/core/providers/finance_controller.dart';
 import 'package:duitku/core/providers/providers.dart';
 import 'package:duitku/core/utils/formatters.dart';
@@ -142,6 +143,8 @@ class _GoalCard extends ConsumerWidget {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 10),
+          _StreakAndBadges(goal: goal, color: color),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -237,6 +240,65 @@ class _GoalCard extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StreakAndBadges extends StatelessWidget {
+  const _StreakAndBadges({required this.goal, required this.color});
+
+  final SavingGoal goal;
+  final Color color;
+
+  IconData _iconFor(SavingBadgeKind kind) {
+    switch (kind) {
+      case SavingBadgeKind.firstContribution:
+        return Icons.emoji_events_outlined;
+      case SavingBadgeKind.streak4Weeks:
+        return Icons.bolt;
+      case SavingBadgeKind.halfway:
+        return Icons.timeline;
+      case SavingBadgeKind.completed:
+        return Icons.flag;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final streakWeeks = StreakCalculator.currentStreakWeeks(goal);
+    final badges = StreakCalculator.earnedBadges(goal);
+    final scheme = Theme.of(context).colorScheme;
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        if (streakWeeks > 0)
+          Chip(
+            visualDensity: VisualDensity.compact,
+            avatar: const Text('🔥', style: TextStyle(fontSize: 12)),
+            label: Text('$streakWeeks minggu'),
+            backgroundColor: color.withValues(alpha: 0.12),
+            side: BorderSide.none,
+          ),
+        for (final badge in badges)
+          Chip(
+            visualDensity: VisualDensity.compact,
+            avatar: Icon(
+              _iconFor(badge.kind),
+              size: 14,
+              color: badge.achieved ? color : scheme.onSurfaceVariant,
+            ),
+            label: Text(badge.kind.label),
+            backgroundColor: badge.achieved
+                ? color.withValues(alpha: 0.12)
+                : scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            labelStyle: TextStyle(
+              color: badge.achieved ? null : scheme.onSurfaceVariant,
+            ),
+            side: BorderSide.none,
+          ),
+      ],
     );
   }
 }

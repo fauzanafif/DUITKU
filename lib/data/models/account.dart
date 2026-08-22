@@ -1,6 +1,6 @@
 import 'package:duitku/core/utils/json_utils.dart';
 
-enum AccountType { bank, cash, ewallet, other }
+enum AccountType { bank, cash, ewallet, other, allowance }
 
 extension AccountTypeLabel on AccountType {
   String get label {
@@ -13,6 +13,8 @@ extension AccountTypeLabel on AccountType {
         return 'E-Wallet';
       case AccountType.other:
         return 'Lainnya';
+      case AccountType.allowance:
+        return 'Uang Jajan';
     }
   }
 }

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:duitku/core/utils/app_icons.dart';
 import 'package:duitku/core/finance/category_suggester.dart';
+import 'package:duitku/core/finance/date_range.dart';
+import 'package:duitku/core/finance/finance_calculator.dart';
 import 'package:duitku/core/finance/transaction_validator.dart';
 import 'package:duitku/core/providers/finance_controller.dart';
 import 'package:duitku/core/providers/finance_snapshot.dart';
@@ -403,10 +405,74 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     });
   }
 
+  /// Soft-warns (never blocks) when an expense from an allowance account
+  /// would push this cycle's outflow past its configured limit. Returns
+  /// false only when the user explicitly cancels.
+  Future<bool> _confirmAllowanceLimit(
+    FinanceSnapshot snapshot,
+    double amount,
+  ) async {
+    final account = snapshot.accountsById[_accountId];
+    if (account == null || account.type != AccountType.allowance) return true;
+
+    final payday = ref.settings.payday;
+    final label = DateRange.financialMonthLabel(_dateTime, payday);
+    final range = DateRange.financialMonth(label.year, label.month, payday);
+    final limits = ref.read(allowanceLimitsProvider).valueOrNull ?? const [];
+    final limit = limits
+        .where((l) =>
+            l.accountId == account.id &&
+            l.year == label.year &&
+            l.month == label.month)
+        .firstOrNull;
+    if (limit == null) return true;
+
+    final otherTransactions = snapshot.transactions
+        .where((tx) => !_isEditing || tx.id != widget.transactionId);
+    final usedSoFar = FinanceCalculator.outflow(
+      otherTransactions,
+      account.id,
+      range,
+      includeTransfers: false,
+    );
+    if (usedSoFar + amount <= limit.limitAmount) return true;
+
+    final remaining =
+        (limit.limitAmount - usedSoFar).clamp(0.0, double.infinity);
+    if (!mounted) return false;
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Melebihi Batas Jajan'),
+        content: Text(
+          'Sisa batas jajan bulan ini '
+          '${Formatters.currency(remaining, currencyCode: ref.settings.currencyCode)}. '
+          'Lanjutkan transaksi ini?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Lanjutkan'),
+          ),
+        ],
+      ),
+    );
+    return proceed ?? false;
+  }
+
   Future<void> _submit(FinanceSnapshot snapshot) async {
     if (!_formKey.currentState!.validate()) return;
     final amount = Formatters.parseAmount(_amountController.text);
     final category = snapshot.categoriesById[_categoryId];
+
+    if (_type == TransactionType.expense &&
+        !await _confirmAllowanceLimit(snapshot, amount)) {
+      return;
+    }
 
     var title = _titleController.text.trim();
     if (title.isEmpty) {

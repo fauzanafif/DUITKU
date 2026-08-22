@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:duitku/core/utils/app_icons.dart';
 import 'package:duitku/core/constants/app_defaults.dart';
@@ -69,8 +70,9 @@ class AccountsScreen extends ConsumerWidget {
                   account: account,
                   balance: snapshot.balanceOf(account.id),
                   currencyCode: currencyCode,
-                  onEdit: () =>
-                      showAccountEditor(context, ref, account: account),
+                  onTap: () => account.type == AccountType.allowance
+                      ? context.push('/accounts/allowance/${account.id}')
+                      : showAccountEditor(context, ref, account: account),
                   onDelete: () => _confirmDelete(context, ref, account),
                 ),
                 const SizedBox(height: 10),
@@ -122,21 +124,21 @@ class _AccountCard extends StatelessWidget {
     required this.account,
     required this.balance,
     required this.currencyCode,
-    required this.onEdit,
+    required this.onTap,
     required this.onDelete,
   });
 
   final Account account;
   final double balance;
   final String currencyCode;
-  final VoidCallback onEdit;
+  final VoidCallback onTap;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final color = Color(account.colorValue);
     return SectionCard(
-      onTap: onEdit,
+      onTap: onTap,
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [

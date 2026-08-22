@@ -2,13 +2,17 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
+import 'package:pdf/widgets.dart' as pw;
 
+import 'package:duitku/core/finance/date_range.dart';
+import 'package:duitku/core/finance/finance_calculator.dart';
 import 'package:duitku/core/utils/formatters.dart';
 import 'package:duitku/core/utils/json_utils.dart';
 import 'package:duitku/data/database/duitku_database.dart';
 import 'package:duitku/data/models/account.dart';
 import 'package:duitku/data/models/budget.dart';
 import 'package:duitku/data/models/category.dart';
+import 'package:duitku/data/models/allowance_limit.dart';
 import 'package:duitku/data/models/debt.dart';
 import 'package:duitku/data/models/recurring_rule.dart';
 import 'package:duitku/data/models/saving_goal.dart';
@@ -23,6 +27,7 @@ class BackupPayload {
     required this.savingGoals,
     required this.debts,
     required this.recurringRules,
+    required this.allowanceLimits,
   });
 
   final List<Account> accounts;
@@ -32,6 +37,7 @@ class BackupPayload {
   final List<SavingGoal> savingGoals;
   final List<Debt> debts;
   final List<RecurringRule> recurringRules;
+  final List<AllowanceLimit> allowanceLimits;
 
   int get totalRecords =>
       accounts.length +
@@ -40,7 +46,8 @@ class BackupPayload {
       budgets.length +
       savingGoals.length +
       debts.length +
-      recurringRules.length;
+      recurringRules.length +
+      allowanceLimits.length;
 }
 
 enum RestoreMode {
@@ -74,6 +81,8 @@ class BackupService {
       'debts': (await _db.readDebts()).map((e) => e.toJson()).toList(),
       'recurringRules':
           (await _db.readRecurringRules()).map((e) => e.toJson()).toList(),
+      'allowanceLimits':
+          (await _db.readAllowanceLimits()).map((e) => e.toJson()).toList(),
     };
   }
 
@@ -117,6 +126,137 @@ class BackupService {
     return file;
   }
 
+  /// Renders a one-cycle report (summary + category breakdown + full
+  /// transaction list) as a PDF, reusing the exact same calculations the
+  /// on-screen Laporan tab uses so the numbers always match.
+  ///
+  /// Building the document is pure (no file I/O, no platform channels) so
+  /// it is unit-testable on its own — [exportMonthlyReportPdf] just adds
+  /// the file-writing step, mirroring [exportJson]/[exportCsv].
+  static pw.Document buildMonthlyReportDocument({
+    required DateTime month,
+    required List<Account> accounts,
+    required List<Category> categories,
+    required List<TransactionRecord> transactions,
+    required String currencyCode,
+    int payday = 1,
+  }) {
+    final range = DateRange.financialMonth(month.year, month.month, payday);
+    final cashFlow = FinanceCalculator.cashFlow(transactions, range);
+    final breakdown =
+        FinanceCalculator.breakdownByCategory(transactions, range);
+    final periodTransactions =
+        FinanceCalculator.inRange(transactions, range).toList()
+          ..sort((a, b) =>
+              a.transactionDateTime.compareTo(b.transactionDateTime));
+
+    final categoryNames = {for (final c in categories) c.id: c.name};
+    final accountNames = {for (final a in accounts) a.id: a.name};
+
+    final doc = pw.Document();
+    doc.addPage(
+      pw.MultiPage(
+        build: (context) => [
+          pw.Header(
+            level: 0,
+            text: 'Laporan DUITKU - ${Formatters.monthYear(month)}',
+          ),
+          pw.SizedBox(height: 12),
+          pw.Text('Ringkasan',
+              style:
+                  pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
+          pw.SizedBox(height: 6),
+          pw.TableHelper.fromTextArray(
+            headers: const ['Pemasukan', 'Pengeluaran', 'Arus Kas Bersih'],
+            data: [
+              [
+                Formatters.currency(cashFlow.income,
+                    currencyCode: currencyCode),
+                Formatters.currency(cashFlow.expense,
+                    currencyCode: currencyCode),
+                Formatters.currency(cashFlow.net, currencyCode: currencyCode),
+              ],
+            ],
+          ),
+          pw.SizedBox(height: 16),
+          pw.Text('Pengeluaran per Kategori',
+              style:
+                  pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
+          pw.SizedBox(height: 6),
+          if (breakdown.isEmpty)
+            pw.Text('Belum ada pengeluaran pada periode ini.')
+          else
+            pw.TableHelper.fromTextArray(
+              headers: const ['Kategori', 'Total', 'Persentase'],
+              data: [
+                for (final entry in breakdown)
+                  [
+                    categoryNames[entry.categoryId] ?? 'Tanpa kategori',
+                    Formatters.currency(entry.total,
+                        currencyCode: currencyCode),
+                    Formatters.percent(entry.share),
+                  ],
+              ],
+            ),
+          pw.SizedBox(height: 16),
+          pw.Text('Transaksi',
+              style:
+                  pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
+          pw.SizedBox(height: 6),
+          if (periodTransactions.isEmpty)
+            pw.Text('Belum ada transaksi pada periode ini.')
+          else
+            pw.TableHelper.fromTextArray(
+              headers: const [
+                'Tanggal',
+                'Judul',
+                'Tipe',
+                'Kategori',
+                'Akun',
+                'Nominal',
+              ],
+              data: [
+                for (final tx in periodTransactions)
+                  [
+                    Formatters.shortDate(tx.transactionDateTime),
+                    tx.title,
+                    tx.type.label,
+                    categoryNames[tx.categoryId] ?? '-',
+                    accountNames[tx.accountId] ?? '-',
+                    Formatters.currency(tx.amount,
+                        currencyCode: currencyCode),
+                  ],
+              ],
+            ),
+        ],
+      ),
+    );
+
+    return doc;
+  }
+
+  Future<File> exportMonthlyReportPdf({
+    required DateTime month,
+    required List<Account> accounts,
+    required List<Category> categories,
+    required List<TransactionRecord> transactions,
+    required String currencyCode,
+    int payday = 1,
+  }) async {
+    final doc = buildMonthlyReportDocument(
+      month: month,
+      accounts: accounts,
+      categories: categories,
+      transactions: transactions,
+      currencyCode: currencyCode,
+      payday: payday,
+    );
+    final directory = await _backupDirectory();
+    final file = File('${directory.path}/duitku-laporan-${_timestamp()}.pdf');
+    await file.writeAsBytes(await doc.save());
+    return file;
+  }
+
   /// Parses and validates a backup file without touching the database.
   BackupPayload parse(String raw) {
     final Object? decoded;
@@ -147,6 +287,8 @@ class BackupService {
       debts: _parseList(decoded['debts'], Debt.fromJson),
       recurringRules:
           _parseList(decoded['recurringRules'], RecurringRule.fromJson),
+      allowanceLimits: _parseList(
+          decoded['allowanceLimits'], AllowanceLimit.fromJson),
     );
 
     _assertUniqueIds(payload.accounts.map((e) => e.id), 'akun');
@@ -157,6 +299,8 @@ class BackupService {
     _assertUniqueIds(payload.debts.map((e) => e.id), 'cicilan');
     _assertUniqueIds(
         payload.recurringRules.map((e) => e.id), 'transaksi berulang');
+    _assertUniqueIds(
+        payload.allowanceLimits.map((e) => e.id), 'limit uang jajan');
 
     final accountIds = payload.accounts.map((e) => e.id).toSet();
     final categoryIds = payload.categories.map((e) => e.id).toSet();
@@ -199,6 +343,12 @@ class BackupService {
             'Transaksi berulang "${rule.title}" merujuk kategori yang tidak ada.');
       }
     }
+    for (final limit in payload.allowanceLimits) {
+      if (!accountIds.contains(limit.accountId)) {
+        throw BackupFormatException(
+            'Limit uang jajan merujuk akun yang tidak ada di backup.');
+      }
+    }
     return payload;
   }
 
@@ -218,6 +368,8 @@ class BackupService {
     final existingDebts = (await _db.readDebts()).map((e) => e.id).toSet();
     final existingRecurringRules =
         (await _db.readRecurringRules()).map((e) => e.id).toSet();
+    final existingAllowanceLimits =
+        (await _db.readAllowanceLimits()).map((e) => e.id).toSet();
 
     for (final account in payload.accounts) {
       if (existingAccounts.contains(account.id)) continue;
@@ -246,6 +398,10 @@ class BackupService {
     for (final rule in payload.recurringRules) {
       if (existingRecurringRules.contains(rule.id)) continue;
       await _db.writeRecurringRule(rule);
+    }
+    for (final limit in payload.allowanceLimits) {
+      if (existingAllowanceLimits.contains(limit.id)) continue;
+      await _db.writeAllowanceLimit(limit);
     }
   }
 

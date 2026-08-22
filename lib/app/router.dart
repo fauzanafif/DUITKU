@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:duitku/core/providers/providers.dart';
 import 'package:duitku/data/models/transaction.dart';
 import 'package:duitku/features/accounts/accounts_screen.dart';
+import 'package:duitku/features/accounts/allowance_screen.dart';
 import 'package:duitku/features/budget/budget_screen.dart';
 import 'package:duitku/features/dashboard/dashboard_screen.dart';
 import 'package:duitku/features/debts/debts_screen.dart';
@@ -107,6 +108,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/accounts',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const AccountsScreen(),
+      ),
+      GoRoute(
+        path: '/accounts/allowance/:id',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) =>
+            AllowanceScreen(accountId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/budget',
