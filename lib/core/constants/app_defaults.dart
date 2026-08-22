@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:duitku/data/models/account.dart';
 import 'package:duitku/data/models/category.dart';
+import 'package:duitku/data/models/debt.dart';
 
 class DefaultCategorySeed {
   const DefaultCategorySeed(this.name, this.kind, this.icon, this.color);
@@ -60,6 +61,18 @@ class AppDefaults {
     AccountType.ewallet: Icons.account_balance_wallet,
     AccountType.other: Icons.savings,
     AccountType.allowance: Icons.child_care,
+  };
+
+  static const Map<DebtType, IconData> debtTypeIcons = {
+    DebtType.installment: Icons.local_shipping_outlined,
+    DebtType.creditCard: Icons.credit_card,
+    DebtType.paylater: Icons.shopping_bag_outlined,
+  };
+
+  static const Map<DebtType, Color> debtTypeColors = {
+    DebtType.installment: Color(0xFF2563EB),
+    DebtType.creditCard: Color(0xFF9333EA),
+    DebtType.paylater: Color(0xFFEA580C),
   };
 
   static const List<Color> palette = [

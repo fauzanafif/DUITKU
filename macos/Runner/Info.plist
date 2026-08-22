@@ -28,5 +28,7 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSCameraUsageDescription</key>
+	<string>DUITKU butuh akses kamera untuk mengambil foto profil.</string>
 </dict>
 </plist>

@@ -5,6 +5,7 @@ import 'package:duitku/core/utils/json_utils.dart';
 class AppSettings {
   const AppSettings({
     this.userName = '',
+    this.profilePhotoBase64,
     this.currencyCode = 'IDR',
     this.themeMode = ThemeMode.system,
     this.onboardingCompleted = false,
@@ -26,6 +27,12 @@ class AppSettings {
   });
 
   final String userName;
+
+  /// Base64-encoded JPEG thumbnail (resized/compressed by the picker before
+  /// encoding), so it stays small enough to live inline in the settings
+  /// JSON blob alongside everything else.
+  final String? profilePhotoBase64;
+
   final String currencyCode;
   final ThemeMode themeMode;
   final bool onboardingCompleted;
@@ -56,6 +63,7 @@ class AppSettings {
 
   AppSettings copyWith({
     String? userName,
+    Object? profilePhotoBase64 = _unset,
     String? currencyCode,
     ThemeMode? themeMode,
     bool? onboardingCompleted,
@@ -77,6 +85,9 @@ class AppSettings {
   }) {
     return AppSettings(
       userName: userName ?? this.userName,
+      profilePhotoBase64: profilePhotoBase64 == _unset
+          ? this.profilePhotoBase64
+          : profilePhotoBase64 as String?,
       currencyCode: currencyCode ?? this.currencyCode,
       themeMode: themeMode ?? this.themeMode,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
@@ -109,6 +120,7 @@ class AppSettings {
 
   Map<String, dynamic> toJson() => {
         'userName': userName,
+        'profilePhotoBase64': profilePhotoBase64,
         'currencyCode': currencyCode,
         'themeMode': themeMode.name,
         'onboardingCompleted': onboardingCompleted,
@@ -131,6 +143,7 @@ class AppSettings {
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
         userName: readString(json, 'userName', fallback: ''),
+        profilePhotoBase64: readNullableString(json, 'profilePhotoBase64'),
         currencyCode: readString(json, 'currencyCode', fallback: 'IDR'),
         themeMode: readEnum(json, 'themeMode', ThemeMode.values, ThemeMode.system),
         onboardingCompleted: readBool(json, 'onboardingCompleted'),

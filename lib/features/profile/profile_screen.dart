@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:duitku/core/providers/finance_snapshot.dart';
 import 'package:duitku/core/providers/providers.dart';
@@ -25,13 +28,10 @@ class ProfileScreen extends ConsumerWidget {
           SectionCard(
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  child: Text(
-                    name.characters.first.toUpperCase(),
-                    style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.w700),
-                  ),
+                _ProfilePhoto(
+                  initial: name.characters.first.toUpperCase(),
+                  photoBase64: settings.profilePhotoBase64,
+                  onTap: () => _editPhoto(context, ref),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -73,6 +73,18 @@ class ProfileScreen extends ConsumerWidget {
             onTap: () => context.push('/savings'),
           ),
           _MenuTile(
+            icon: Icons.credit_card_outlined,
+            title: 'Cicilan & Utang',
+            subtitle: 'Kartu kredit, paylater, cicilan barang',
+            onTap: () => context.push('/debts'),
+          ),
+          _MenuTile(
+            icon: Icons.autorenew,
+            title: 'Transaksi Berulang',
+            subtitle: 'Langganan dan tagihan rutin',
+            onTap: () => context.push('/recurring'),
+          ),
+          _MenuTile(
             icon: Icons.category_outlined,
             title: 'Kategori',
             subtitle: '${snapshot?.categories.length ?? 0} kategori',
@@ -103,6 +115,118 @@ class ProfileScreen extends ConsumerWidget {
             child: Text(
               'DUITKU •  uangmu, capai tujuanmu.',
               style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+enum _PhotoAction { gallery, camera, remove }
+
+Future<void> _editPhoto(BuildContext context, WidgetRef ref) async {
+  final hasPhoto = ref.settings.profilePhotoBase64 != null;
+  final choice = await showModalBottomSheet<_PhotoAction>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.photo_library_outlined),
+            title: const Text('Pilih dari Galeri'),
+            onTap: () => Navigator.of(sheetContext).pop(_PhotoAction.gallery),
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_camera_outlined),
+            title: const Text('Ambil Foto'),
+            onTap: () => Navigator.of(sheetContext).pop(_PhotoAction.camera),
+          ),
+          if (hasPhoto)
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('Hapus Foto'),
+              onTap: () => Navigator.of(sheetContext).pop(_PhotoAction.remove),
+            ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ),
+  );
+  if (choice == null) return;
+
+  final notifier = ref.read(settingsProvider.notifier);
+  if (choice == _PhotoAction.remove) {
+    await notifier.mutate((s) => s.copyWith(profilePhotoBase64: null));
+    return;
+  }
+
+  try {
+    final picked = await ImagePicker().pickImage(
+      source: choice == _PhotoAction.camera
+          ? ImageSource.camera
+          : ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 75,
+    );
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    await notifier.mutate(
+        (s) => s.copyWith(profilePhotoBase64: base64Encode(bytes)));
+  } on Object catch (error) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Gagal mengambil foto: $error')));
+  }
+}
+
+class _ProfilePhoto extends StatelessWidget {
+  const _ProfilePhoto({
+    required this.initial,
+    required this.photoBase64,
+    required this.onTap,
+  });
+
+  final String initial;
+  final String? photoBase64;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          CircleAvatar(
+            radius: 28,
+            backgroundImage: photoBase64 == null
+                ? null
+                : MemoryImage(base64Decode(photoBase64!)),
+            child: photoBase64 != null
+                ? null
+                : Text(
+                    initial,
+                    style: const TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.w700),
+                  ),
+          ),
+          Positioned(
+            right: -2,
+            bottom: -2,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: scheme.primary,
+                shape: BoxShape.circle,
+                border: Border.all(color: scheme.surface, width: 2),
+              ),
+              child: Icon(Icons.camera_alt, size: 12, color: scheme.onPrimary),
             ),
           ),
         ],
