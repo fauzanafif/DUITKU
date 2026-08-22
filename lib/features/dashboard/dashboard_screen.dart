@@ -80,8 +80,10 @@ class DashboardScreen extends ConsumerWidget {
                     currencyCode: ref.settings.currencyCode,
                     onPickMonth: () => _pickMonth(context, ref, month),
                   ),
-                  const SizedBox(height: 16),
-                  _HealthScoreCard(score: healthScore),
+                  if (income > 0 || expense > 0) ...[
+                    const SizedBox(height: 16),
+                    _HealthScoreCard(score: healthScore),
+                  ],
                   if (activeDebts.isNotEmpty || dueRecurring.isNotEmpty) ...[
                     const SizedBox(height: 16),
                     _RemindersCard(

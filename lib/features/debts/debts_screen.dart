@@ -10,7 +10,6 @@ import 'package:duitku/core/theme/app_theme.dart';
 import 'package:duitku/core/utils/formatters.dart';
 import 'package:duitku/data/models/debt.dart';
 import 'package:duitku/widgets/amount_field.dart';
-import 'package:duitku/widgets/icon_color_picker.dart';
 import 'package:duitku/widgets/section_card.dart';
 import 'package:duitku/widgets/state_views.dart';
 
@@ -344,9 +343,6 @@ class _DebtEditorState extends ConsumerState<_DebtEditor> {
   late DebtType _type = widget.debt?.type ?? DebtType.installment;
   late int _dueDay = widget.debt?.dueDay ?? 1;
   late String? _accountId = widget.debt?.accountId;
-  late int _icon = widget.debt?.iconCodePoint ?? Icons.credit_card.codePoint;
-  late int _color =
-      widget.debt?.colorValue ?? AppDefaults.palette.first.toARGB32();
   late bool _reminderEnabled = widget.debt?.reminderEnabled ?? false;
 
   @override
@@ -459,7 +455,7 @@ class _DebtEditorState extends ConsumerState<_DebtEditor> {
                 ],
                 onChanged: (value) => setState(() => _accountId = value),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 value: _reminderEnabled,
@@ -468,22 +464,7 @@ class _DebtEditorState extends ConsumerState<_DebtEditor> {
                     'Notifikasi sekali menjelang tanggal jatuh tempo bulan ini.'),
                 onChanged: (value) => setState(() => _reminderEnabled = value),
               ),
-              const SizedBox(height: 8),
-              const Text('Ikon', style: TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              IconPickerRow(
-                selected: _icon,
-                onChanged: (value) => setState(() => _icon = value),
-              ),
-              const SizedBox(height: 16),
-              const Text('Warna',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 8),
-              ColorPickerRow(
-                selected: _color,
-                onChanged: (value) => setState(() => _color = value),
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               FilledButton(onPressed: _submit, child: const Text('Simpan')),
             ],
           ),
@@ -504,6 +485,9 @@ class _DebtEditorState extends ConsumerState<_DebtEditor> {
         ? null
         : Formatters.parseAmount(_installmentController.text);
 
+    final icon = AppDefaults.debtTypeIcons[_type]!.codePoint;
+    final color = AppDefaults.debtTypeColors[_type]!.toARGB32();
+
     final existing = widget.debt;
     String debtId;
     if (existing == null) {
@@ -512,8 +496,8 @@ class _DebtEditorState extends ConsumerState<_DebtEditor> {
         type: _type,
         remainingAmount: remaining,
         dueDay: _dueDay,
-        colorValue: _color,
-        iconCodePoint: _icon,
+        colorValue: color,
+        iconCodePoint: icon,
         totalAmount: total,
         installmentAmount: installment,
         accountId: _accountId,
@@ -526,8 +510,8 @@ class _DebtEditorState extends ConsumerState<_DebtEditor> {
         type: _type,
         remainingAmount: remaining,
         dueDay: _dueDay,
-        colorValue: _color,
-        iconCodePoint: _icon,
+        colorValue: color,
+        iconCodePoint: icon,
         totalAmount: total,
         installmentAmount: installment,
         accountId: _accountId,
