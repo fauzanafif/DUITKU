@@ -1,4 +1,5 @@
 import 'package:duitku/data/models/account.dart';
+import 'package:duitku/data/models/allowance_limit.dart';
 import 'package:duitku/data/models/app_settings.dart';
 import 'package:duitku/data/models/budget.dart';
 import 'package:duitku/data/models/category.dart';
@@ -40,6 +41,10 @@ abstract class DuitkuDatabase {
   Future<List<RecurringRule>> readRecurringRules();
   Future<void> writeRecurringRule(RecurringRule rule);
   Future<void> deleteRecurringRule(String id);
+
+  Future<List<AllowanceLimit>> readAllowanceLimits();
+  Future<void> writeAllowanceLimit(AllowanceLimit limit);
+  Future<void> deleteAllowanceLimit(String id);
 
   Future<AppSettings> readSettings();
   Future<void> writeSettings(AppSettings settings);

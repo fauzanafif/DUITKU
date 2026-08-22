@@ -59,6 +59,7 @@ class AppDefaults {
     AccountType.cash: Icons.payments,
     AccountType.ewallet: Icons.account_balance_wallet,
     AccountType.other: Icons.savings,
+    AccountType.allowance: Icons.child_care,
   };
 
   static const List<Color> palette = [

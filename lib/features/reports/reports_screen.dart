@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:duitku/core/finance/date_range.dart';
 import 'package:duitku/core/finance/finance_calculator.dart';
@@ -19,11 +20,46 @@ final reportMonthProvider = StateProvider<DateTime>((ref) {
   return DateTime(label.year, label.month);
 });
 
-class ReportsScreen extends ConsumerWidget {
+class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ReportsScreen> createState() => _ReportsScreenState();
+}
+
+class _ReportsScreenState extends ConsumerState<ReportsScreen> {
+  bool _exporting = false;
+
+  Future<void> _exportPdf(
+    FinanceSnapshot snapshot,
+    DateTime month,
+    int payday,
+  ) async {
+    setState(() => _exporting = true);
+    try {
+      final file = await ref.read(backupServiceProvider).exportMonthlyReportPdf(
+            month: month,
+            accounts: snapshot.accounts,
+            categories: snapshot.categories,
+            transactions: snapshot.transactions,
+            currencyCode: ref.settings.currencyCode,
+            payday: payday,
+          );
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(file.path)], text: 'Laporan DUITKU'),
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Gagal export: $error')));
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final snapshotAsync = ref.watch(financeSnapshotProvider);
     final month = ref.watch(reportMonthProvider);
     final payday = ref.settings.payday;
@@ -33,6 +69,24 @@ class ReportsScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Laporan'),
+          actions: [
+            snapshotAsync.maybeWhen(
+              data: (snapshot) => IconButton(
+                tooltip: 'Export PDF',
+                onPressed: _exporting
+                    ? null
+                    : () => _exportPdf(snapshot, month, payday),
+                icon: _exporting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.ios_share),
+              ),
+              orElse: () => const SizedBox.shrink(),
+            ),
+          ],
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Ringkasan'),

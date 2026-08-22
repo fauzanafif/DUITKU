@@ -5,6 +5,7 @@ import 'package:duitku/data/models/account.dart';
 import 'package:duitku/data/models/app_settings.dart';
 import 'package:duitku/data/models/budget.dart';
 import 'package:duitku/data/models/category.dart';
+import 'package:duitku/data/models/allowance_limit.dart';
 import 'package:duitku/data/models/debt.dart';
 import 'package:duitku/data/models/recurring_rule.dart';
 import 'package:duitku/data/models/saving_goal.dart';
@@ -20,6 +21,7 @@ class InMemoryDatabase implements DuitkuDatabase {
   final Map<String, String> _goals = {};
   final Map<String, String> _debts = {};
   final Map<String, String> _recurringRules = {};
+  final Map<String, String> _allowanceLimits = {};
   String? _settings;
 
   @override
@@ -112,6 +114,18 @@ class InMemoryDatabase implements DuitkuDatabase {
       _recurringRules.remove(id);
 
   @override
+  Future<List<AllowanceLimit>> readAllowanceLimits() async =>
+      _decodeAll(_allowanceLimits, AllowanceLimit.fromJson);
+
+  @override
+  Future<void> writeAllowanceLimit(AllowanceLimit limit) async =>
+      _allowanceLimits[limit.id] = jsonEncode(limit.toJson());
+
+  @override
+  Future<void> deleteAllowanceLimit(String id) async =>
+      _allowanceLimits.remove(id);
+
+  @override
   Future<AppSettings> readSettings() async {
     final raw = _settings;
     if (raw == null) return const AppSettings();
@@ -131,5 +145,6 @@ class InMemoryDatabase implements DuitkuDatabase {
     _goals.clear();
     _debts.clear();
     _recurringRules.clear();
+    _allowanceLimits.clear();
   }
 }
