@@ -220,9 +220,11 @@ class FinanceCalculator {
   /// Budgets only ever consider expense transactions of the category.
   static BudgetStatus budgetStatus(
     Budget budget,
-    Iterable<TransactionRecord> transactions,
-  ) {
-    final range = DateRange(start: budget.periodStart, end: budget.periodEnd);
+    Iterable<TransactionRecord> transactions, {
+    int payday = 1,
+  }) {
+    final range =
+        DateRange.financialMonth(budget.year, budget.month, payday);
     final used = inRange(transactions, range)
         .where((tx) =>
             tx.type == TransactionType.expense &&

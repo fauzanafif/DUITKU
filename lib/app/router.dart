@@ -7,6 +7,8 @@ import 'package:duitku/data/models/transaction.dart';
 import 'package:duitku/features/accounts/accounts_screen.dart';
 import 'package:duitku/features/budget/budget_screen.dart';
 import 'package:duitku/features/dashboard/dashboard_screen.dart';
+import 'package:duitku/features/debts/debts_screen.dart';
+import 'package:duitku/features/recurring/recurring_screen.dart';
 import 'package:duitku/features/onboarding/onboarding_screen.dart';
 import 'package:duitku/features/profile/profile_screen.dart';
 import 'package:duitku/features/reports/reports_screen.dart';
@@ -115,6 +117,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/savings',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const SavingsScreen(),
+      ),
+      GoRoute(
+        path: '/debts',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const DebtsScreen(),
+      ),
+      GoRoute(
+        path: '/recurring',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const RecurringScreen(),
       ),
       GoRoute(
         path: '/settings',

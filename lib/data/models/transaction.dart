@@ -35,6 +35,7 @@ class TransactionRecord {
     this.note,
     this.paymentMethod,
     this.savingGoalId,
+    this.debtId,
   });
 
   final String id;
@@ -57,6 +58,9 @@ class TransactionRecord {
   /// Set when the transaction is a contribution to a saving goal.
   final String? savingGoalId;
 
+  /// Set when the transaction is a payment against a [Debt].
+  final String? debtId;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -73,6 +77,7 @@ class TransactionRecord {
     Object? note = _unset,
     Object? paymentMethod = _unset,
     Object? savingGoalId = _unset,
+    Object? debtId = _unset,
     DateTime? updatedAt,
   }) {
     return TransactionRecord(
@@ -93,6 +98,7 @@ class TransactionRecord {
           : paymentMethod as String?,
       savingGoalId:
           savingGoalId == _unset ? this.savingGoalId : savingGoalId as String?,
+      debtId: debtId == _unset ? this.debtId : debtId as String?,
       createdAt: createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
     );
@@ -110,6 +116,7 @@ class TransactionRecord {
         'note': note,
         'paymentMethod': paymentMethod,
         'savingGoalId': savingGoalId,
+        'debtId': debtId,
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
       };
@@ -128,6 +135,7 @@ class TransactionRecord {
       note: readNullableString(json, 'note'),
       paymentMethod: readNullableString(json, 'paymentMethod'),
       savingGoalId: readNullableString(json, 'savingGoalId'),
+      debtId: readNullableString(json, 'debtId'),
       createdAt: readDate(json, 'createdAt'),
       updatedAt: readDate(json, 'updatedAt'),
     );

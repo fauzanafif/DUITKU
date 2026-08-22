@@ -30,11 +30,12 @@ class TransactionFilter {
       categoryId != null ||
       period != PeriodPreset.all;
 
-  DateRange range({DateTime? now}) => DateRange.fromPreset(
+  DateRange range({DateTime? now, int payday = 1}) => DateRange.fromPreset(
         period,
         now: now ?? DateTime.now(),
         customFrom: customFrom,
         customTo: customTo,
+        payday: payday,
       );
 
   TransactionFilter copyWith({
@@ -64,8 +65,9 @@ class TransactionFilter {
   List<TransactionRecord> apply(
     List<TransactionRecord> transactions, {
     DateTime? now,
+    int payday = 1,
   }) {
-    final dateRange = range(now: now);
+    final dateRange = range(now: now, payday: payday);
     final normalizedQuery = query.trim().toLowerCase();
     final result = transactions.where((tx) {
       if (!dateRange.contains(tx.transactionDateTime)) return false;

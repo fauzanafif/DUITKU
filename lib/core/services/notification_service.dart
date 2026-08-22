@@ -89,6 +89,52 @@ class NotificationService {
     }
   }
 
+  /// Stable per-item notification id, namespaced so ids from different
+  /// features (and the fixed daily-reminder id) never collide.
+  static int _idFor(String namespace, String key) {
+    final base = namespace == 'recurring' ? 3000000 : 2000000;
+    return base + (key.hashCode.abs() % 900000);
+  }
+
+  /// Fires once at [dateTime] — unlike [scheduleDailyReminder], which
+  /// repeats every day at the same time. Used for one-off due-date
+  /// reminders (debts, subscriptions) that live alongside the daily
+  /// reminder without ever touching its fixed [_reminderId].
+  Future<void> scheduleOneTimeReminder({
+    required String namespace,
+    required String key,
+    required String title,
+    required String body,
+    required DateTime dateTime,
+  }) async {
+    await init();
+    if (!dateTime.isAfter(DateTime.now())) return;
+    try {
+      await _plugin.zonedSchedule(
+        id: _idFor(namespace, key),
+        title: title,
+        body: body,
+        scheduledDate: tz.TZDateTime.from(dateTime, tz.local),
+        notificationDetails: const NotificationDetails(
+          android: _androidDetails,
+          iOS: DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+    } on Object catch (error) {
+      debugPrint('Schedule one-time reminder failed: $error');
+    }
+  }
+
+  Future<void> cancelReminderFor(String namespace, String key) async {
+    await init();
+    try {
+      await _plugin.cancel(id: _idFor(namespace, key));
+    } on Object catch (error) {
+      debugPrint('Cancel one-time reminder failed: $error');
+    }
+  }
+
   tz.TZDateTime _nextInstanceOf(int hour, int minute) {
     final now = tz.TZDateTime.now(tz.local);
     var scheduled =

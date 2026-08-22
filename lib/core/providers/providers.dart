@@ -9,11 +9,15 @@ import 'package:duitku/data/models/account.dart';
 import 'package:duitku/data/models/app_settings.dart';
 import 'package:duitku/data/models/budget.dart';
 import 'package:duitku/data/models/category.dart';
+import 'package:duitku/data/models/debt.dart';
+import 'package:duitku/data/models/recurring_rule.dart';
 import 'package:duitku/data/models/saving_goal.dart';
 import 'package:duitku/data/models/transaction.dart';
 import 'package:duitku/data/repositories/account_repository.dart';
 import 'package:duitku/data/repositories/budget_repository.dart';
 import 'package:duitku/data/repositories/category_repository.dart';
+import 'package:duitku/data/repositories/debt_repository.dart';
+import 'package:duitku/data/repositories/recurring_rule_repository.dart';
 import 'package:duitku/data/repositories/saving_goal_repository.dart';
 import 'package:duitku/data/repositories/settings_repository.dart';
 import 'package:duitku/data/repositories/transaction_repository.dart';
@@ -37,6 +41,12 @@ final budgetRepositoryProvider = Provider<BudgetRepository>(
 
 final savingGoalRepositoryProvider = Provider<SavingGoalRepository>(
     (ref) => SavingGoalRepository(ref.watch(databaseProvider)));
+
+final debtRepositoryProvider = Provider<DebtRepository>(
+    (ref) => DebtRepository(ref.watch(databaseProvider)));
+
+final recurringRuleRepositoryProvider = Provider<RecurringRuleRepository>(
+    (ref) => RecurringRuleRepository(ref.watch(databaseProvider)));
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
     (ref) => SettingsRepository(ref.watch(databaseProvider)));
@@ -66,6 +76,20 @@ final budgetsProvider = FutureProvider<List<Budget>>(
 
 final savingGoalsProvider = FutureProvider<List<SavingGoal>>(
     (ref) => ref.watch(savingGoalRepositoryProvider).getAll());
+
+final debtsProvider = FutureProvider<List<Debt>>(
+    (ref) => ref.watch(debtRepositoryProvider).getAll());
+
+final recurringRulesProvider = FutureProvider<List<RecurringRule>>(
+    (ref) => ref.watch(recurringRuleRepositoryProvider).getAll());
+
+/// Active rules whose next occurrence is already due. Pure read — nothing
+/// is ever booked or advanced just by looking at this list; the user must
+/// explicitly confirm or skip each one.
+final recurringDueProvider = Provider<List<RecurringRule>>((ref) {
+  final rules = ref.watch(recurringRulesProvider).valueOrNull ?? const [];
+  return rules.where((rule) => rule.isDue).toList();
+});
 
 class SettingsNotifier extends AsyncNotifier<AppSettings> {
   @override
@@ -98,6 +122,8 @@ final List<ProviderOrFamily> financialProviders = [
   categoriesProvider,
   budgetsProvider,
   savingGoalsProvider,
+  debtsProvider,
+  recurringRulesProvider,
 ];
 
 void invalidateFinancialData(Ref ref) {

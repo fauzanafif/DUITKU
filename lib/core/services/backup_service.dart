@@ -9,6 +9,8 @@ import 'package:duitku/data/database/duitku_database.dart';
 import 'package:duitku/data/models/account.dart';
 import 'package:duitku/data/models/budget.dart';
 import 'package:duitku/data/models/category.dart';
+import 'package:duitku/data/models/debt.dart';
+import 'package:duitku/data/models/recurring_rule.dart';
 import 'package:duitku/data/models/saving_goal.dart';
 import 'package:duitku/data/models/transaction.dart';
 
@@ -19,6 +21,8 @@ class BackupPayload {
     required this.transactions,
     required this.budgets,
     required this.savingGoals,
+    required this.debts,
+    required this.recurringRules,
   });
 
   final List<Account> accounts;
@@ -26,13 +30,17 @@ class BackupPayload {
   final List<TransactionRecord> transactions;
   final List<Budget> budgets;
   final List<SavingGoal> savingGoals;
+  final List<Debt> debts;
+  final List<RecurringRule> recurringRules;
 
   int get totalRecords =>
       accounts.length +
       categories.length +
       transactions.length +
       budgets.length +
-      savingGoals.length;
+      savingGoals.length +
+      debts.length +
+      recurringRules.length;
 }
 
 enum RestoreMode {
@@ -63,6 +71,9 @@ class BackupService {
       'budgets': (await _db.readBudgets()).map((e) => e.toJson()).toList(),
       'savingGoals':
           (await _db.readSavingGoals()).map((e) => e.toJson()).toList(),
+      'debts': (await _db.readDebts()).map((e) => e.toJson()).toList(),
+      'recurringRules':
+          (await _db.readRecurringRules()).map((e) => e.toJson()).toList(),
     };
   }
 
@@ -133,6 +144,9 @@ class BackupService {
           _parseList(decoded['transactions'], TransactionRecord.fromJson),
       budgets: _parseList(decoded['budgets'], Budget.fromJson),
       savingGoals: _parseList(decoded['savingGoals'], SavingGoal.fromJson),
+      debts: _parseList(decoded['debts'], Debt.fromJson),
+      recurringRules:
+          _parseList(decoded['recurringRules'], RecurringRule.fromJson),
     );
 
     _assertUniqueIds(payload.accounts.map((e) => e.id), 'akun');
@@ -140,9 +154,13 @@ class BackupService {
     _assertUniqueIds(payload.transactions.map((e) => e.id), 'transaksi');
     _assertUniqueIds(payload.budgets.map((e) => e.id), 'budget');
     _assertUniqueIds(payload.savingGoals.map((e) => e.id), 'target');
+    _assertUniqueIds(payload.debts.map((e) => e.id), 'cicilan');
+    _assertUniqueIds(
+        payload.recurringRules.map((e) => e.id), 'transaksi berulang');
 
     final accountIds = payload.accounts.map((e) => e.id).toSet();
     final categoryIds = payload.categories.map((e) => e.id).toSet();
+    final debtIds = payload.debts.map((e) => e.id).toSet();
     for (final tx in payload.transactions) {
       if (!accountIds.contains(tx.accountId)) {
         throw BackupFormatException(
@@ -158,11 +176,27 @@ class BackupService {
         throw BackupFormatException(
             'Transaksi "${tx.title}" merujuk kategori yang tidak ada.');
       }
+      final debtId = tx.debtId;
+      if (debtId != null && !debtIds.contains(debtId)) {
+        throw BackupFormatException(
+            'Transaksi "${tx.title}" merujuk cicilan yang tidak ada.');
+      }
     }
     for (final budget in payload.budgets) {
       if (!categoryIds.contains(budget.categoryId)) {
         throw BackupFormatException(
             'Budget merujuk kategori yang tidak ada di backup.');
+      }
+    }
+    for (final rule in payload.recurringRules) {
+      if (!accountIds.contains(rule.accountId)) {
+        throw BackupFormatException(
+            'Transaksi berulang "${rule.title}" merujuk akun yang tidak ada.');
+      }
+      final category = rule.categoryId;
+      if (category != null && !categoryIds.contains(category)) {
+        throw BackupFormatException(
+            'Transaksi berulang "${rule.title}" merujuk kategori yang tidak ada.');
       }
     }
     return payload;
@@ -181,6 +215,9 @@ class BackupService {
     final existingBudgets = (await _db.readBudgets()).map((e) => e.id).toSet();
     final existingGoals =
         (await _db.readSavingGoals()).map((e) => e.id).toSet();
+    final existingDebts = (await _db.readDebts()).map((e) => e.id).toSet();
+    final existingRecurringRules =
+        (await _db.readRecurringRules()).map((e) => e.id).toSet();
 
     for (final account in payload.accounts) {
       if (existingAccounts.contains(account.id)) continue;
@@ -201,6 +238,14 @@ class BackupService {
     for (final goal in payload.savingGoals) {
       if (existingGoals.contains(goal.id)) continue;
       await _db.writeSavingGoal(goal);
+    }
+    for (final debt in payload.debts) {
+      if (existingDebts.contains(debt.id)) continue;
+      await _db.writeDebt(debt);
+    }
+    for (final rule in payload.recurringRules) {
+      if (existingRecurringRules.contains(rule.id)) continue;
+      await _db.writeRecurringRule(rule);
     }
   }
 

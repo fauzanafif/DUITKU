@@ -15,6 +15,7 @@ class TransactionDraft {
     this.note,
     this.paymentMethod,
     this.savingGoalId,
+    this.debtId,
   });
 
   final TransactionType type;
@@ -27,6 +28,7 @@ class TransactionDraft {
   final String? note;
   final String? paymentMethod;
   final String? savingGoalId;
+  final String? debtId;
 }
 
 class TransactionRepository {
@@ -70,6 +72,7 @@ class TransactionRepository {
       note: draft.note,
       paymentMethod: draft.paymentMethod,
       savingGoalId: draft.savingGoalId,
+      debtId: draft.debtId,
       createdAt: now,
       updatedAt: now,
     );
@@ -104,6 +107,7 @@ class TransactionRepository {
       note: draft.note,
       paymentMethod: draft.paymentMethod,
       savingGoalId: draft.savingGoalId,
+      debtId: draft.debtId,
       updatedAt: DateTime.now(),
     );
     await _validate(updated, allowNegativeBalance: allowNegativeBalance);
@@ -117,6 +121,15 @@ class TransactionRepository {
     final transactions = await _db.readTransactions();
     for (final tx in transactions.where((tx) => tx.savingGoalId == goalId)) {
       await _db.deleteTransaction(tx.id);
+    }
+  }
+
+  /// Detaches payment history from a deleted/archived debt without deleting
+  /// the transactions themselves — they remain real spending history.
+  Future<void> unlinkDebt(String debtId) async {
+    final transactions = await _db.readTransactions();
+    for (final tx in transactions.where((tx) => tx.debtId == debtId)) {
+      await _db.writeTransaction(tx.copyWith(debtId: null));
     }
   }
 

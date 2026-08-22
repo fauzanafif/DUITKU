@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:duitku/core/utils/app_icons.dart';
 import 'package:duitku/core/finance/date_range.dart';
 import 'package:duitku/core/finance/finance_calculator.dart';
+import 'package:duitku/core/finance/health_score_calculator.dart';
 import 'package:duitku/core/providers/finance_snapshot.dart';
 import 'package:duitku/core/providers/providers.dart';
 import 'package:duitku/core/theme/app_theme.dart';
@@ -16,8 +17,9 @@ import 'package:duitku/widgets/state_views.dart';
 import 'package:duitku/widgets/transaction_tile.dart';
 
 final dashboardMonthProvider = StateProvider<DateTime>((ref) {
-  final now = DateTime.now();
-  return DateTime(now.year, now.month);
+  final payday = ref.read(settingsProvider).valueOrNull?.payday ?? 1;
+  final label = DateRange.financialMonthLabel(DateTime.now(), payday);
+  return DateTime(label.year, label.month);
 });
 
 class DashboardScreen extends ConsumerWidget {
@@ -26,6 +28,11 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final snapshotAsync = ref.watch(financeSnapshotProvider);
+    final budgets = ref.watch(budgetsProvider).valueOrNull ?? const [];
+    final activeDebts = (ref.watch(debtsProvider).valueOrNull ?? const [])
+        .where((d) => !d.isSettled)
+        .toList();
+    final dueRecurring = ref.watch(recurringDueProvider);
     final month = ref.watch(dashboardMonthProvider);
     final userName = ref.settings.userName;
 
@@ -38,12 +45,25 @@ class DashboardScreen extends ConsumerWidget {
             onRetry: () => ref.invalidate(financeSnapshotProvider),
           ),
           data: (snapshot) {
-            final range = DateRange.month(month.year, month.month);
+            final payday = ref.settings.payday;
+            final range =
+                DateRange.financialMonth(month.year, month.month, payday);
             final income =
                 FinanceCalculator.totalIncome(snapshot.transactions, range);
             final expense =
                 FinanceCalculator.totalExpense(snapshot.transactions, range);
             final recent = snapshot.transactions.take(6).toList();
+            final monthlyBudgetStatuses = budgets
+                .where((b) => b.year == month.year && b.month == month.month)
+                .map((budget) => FinanceCalculator.budgetStatus(
+                    budget, snapshot.transactions,
+                    payday: payday))
+                .toList();
+            final healthScore = HealthScoreCalculator.compute(
+              income: income,
+              expense: expense,
+              budgetStatuses: monthlyBudgetStatuses,
+            );
 
             return RefreshIndicator(
               onRefresh: () async => invalidateFinancialDataFrom(ref),
@@ -60,6 +80,15 @@ class DashboardScreen extends ConsumerWidget {
                     currencyCode: ref.settings.currencyCode,
                     onPickMonth: () => _pickMonth(context, ref, month),
                   ),
+                  const SizedBox(height: 16),
+                  _HealthScoreCard(score: healthScore),
+                  if (activeDebts.isNotEmpty || dueRecurring.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _RemindersCard(
+                      activeDebtCount: activeDebts.length,
+                      dueRecurringCount: dueRecurring.length,
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   SectionHeader(
                     title: 'Akun',
@@ -170,11 +199,10 @@ class _Greeting extends StatelessWidget {
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
-              padding: const EdgeInsets.all(12),
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -314,6 +342,233 @@ class _BalanceCard extends StatelessWidget {
   }
 }
 
+class _HealthScoreCard extends StatelessWidget {
+  const _HealthScoreCard({required this.score});
+
+  final HealthScore score;
+
+  Color _colorFor(BuildContext context) {
+    switch (score.level) {
+      case HealthScoreLevel.great:
+        return AppColors.income;
+      case HealthScoreLevel.good:
+        return AppColors.brand;
+      case HealthScoreLevel.fair:
+        return AppColors.warning;
+      case HealthScoreLevel.poor:
+        return AppColors.expense;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _colorFor(context);
+    return SectionCard(
+      onTap: () => _showBreakdown(context, color),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '${score.score}',
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Skor Kesehatan Keuangan',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  score.level.label,
+                  style: TextStyle(color: color, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right),
+        ],
+      ),
+    );
+  }
+
+  void _showBreakdown(BuildContext context, Color color) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Skor Kesehatan Keuangan: ${score.score}/100',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _ScoreFactorRow(
+              label: 'Rasio Tabungan',
+              value: score.savingsRatio,
+              detail: Formatters.percent(score.savingsRatio),
+              color: color,
+            ),
+            const SizedBox(height: 12),
+            _ScoreFactorRow(
+              label: 'Rasio Pengeluaran vs Pemasukan',
+              value: 1 - score.expenseRatio.clamp(0, 1),
+              detail: Formatters.percent(score.expenseRatio),
+              color: color,
+            ),
+            const SizedBox(height: 12),
+            _ScoreFactorRow(
+              label: 'Kepatuhan Budget',
+              value: score.budgetAdherence,
+              detail: Formatters.percent(score.budgetAdherence),
+              color: color,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ScoreFactorRow extends StatelessWidget {
+  const _ScoreFactorRow({
+    required this.label,
+    required this.value,
+    required this.detail,
+    required this.color,
+  });
+
+  final String label;
+  final double value;
+  final String detail;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text(detail, style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: value.clamp(0.0, 1.0),
+            minHeight: 8,
+            color: color,
+            backgroundColor: color.withValues(alpha: 0.12),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RemindersCard extends StatelessWidget {
+  const _RemindersCard({
+    required this.activeDebtCount,
+    required this.dueRecurringCount,
+  });
+
+  final int activeDebtCount;
+  final int dueRecurringCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionCard(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        children: [
+          if (activeDebtCount > 0)
+            _ReminderRow(
+              icon: Icons.credit_card,
+              label: '$activeDebtCount Cicilan & Utang Aktif',
+              onTap: () => context.push('/debts'),
+            ),
+          if (activeDebtCount > 0 && dueRecurringCount > 0)
+            const Divider(height: 1),
+          if (dueRecurringCount > 0)
+            _ReminderRow(
+              icon: Icons.autorenew,
+              label: '$dueRecurringCount Transaksi Berulang Perlu Dikonfirmasi',
+              onTap: () => context.push('/recurring'),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReminderRow extends StatelessWidget {
+  const _ReminderRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: AppColors.warning, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(label,
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
+            ),
+            const Icon(Icons.chevron_right),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _MiniStat extends StatelessWidget {
   const _MiniStat({
     required this.label,
@@ -330,7 +585,7 @@ class _MiniStat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final onPrimary = Theme.of(context).colorScheme.onPrimary;
-    final iconColor = color ?? onPrimary.withValues(alpha: 0.9);
+    final iconColor = onPrimary.withValues(alpha: 0.9);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
