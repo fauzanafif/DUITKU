@@ -39,6 +39,41 @@ class DateRange {
   static DateRange month(int year, int month) =>
       DateRange(start: DateTime(year, month), end: DateTime(year, month + 1));
 
+  /// The pay-cycle labeled (year, month): starts on [payday] of that month,
+  /// ends the day before [payday] of the following month. `payday: 1`
+  /// matches [month] exactly, so this is a strict generalization — every
+  /// existing user who never touches the payday setting sees no change.
+  ///
+  /// [payday] is clamped to the last day of a shorter month (e.g. 31 in
+  /// February), the same way `Debt.dueDay` already is.
+  static DateRange financialMonth(int year, int month, int payday) {
+    DateTime clampedStart(int y, int m) {
+      final lastDay = DateTime(y, m + 1, 0).day;
+      return DateTime(y, m, payday.clamp(1, lastDay));
+    }
+
+    return DateRange(
+      start: clampedStart(year, month),
+      end: clampedStart(year, month + 1),
+    );
+  }
+
+  /// The (year, month) label of the [financialMonth] cycle that contains
+  /// [moment]. Needed because if [moment] falls before this calendar
+  /// month's payday, it actually still belongs to the cycle labeled the
+  /// *previous* month.
+  static ({int year, int month}) financialMonthLabel(
+    DateTime moment,
+    int payday,
+  ) {
+    final thisMonthCycle = financialMonth(moment.year, moment.month, payday);
+    if (moment.isBefore(thisMonthCycle.start!)) {
+      final previous = DateTime(moment.year, moment.month - 1);
+      return (year: previous.year, month: previous.month);
+    }
+    return (year: moment.year, month: moment.month);
+  }
+
   static DateRange day(DateTime date) {
     final start = DateTime(date.year, date.month, date.day);
     return DateRange(start: start, end: start.add(const Duration(days: 1)));
@@ -56,6 +91,7 @@ class DateRange {
     required DateTime now,
     DateTime? customFrom,
     DateTime? customTo,
+    int payday = 1,
   }) {
     switch (preset) {
       case PeriodPreset.today:
@@ -66,9 +102,12 @@ class DateRange {
         return DateRange(
             start: startOfWeek, end: startOfWeek.add(const Duration(days: 7)));
       case PeriodPreset.thisMonth:
-        return DateRange.month(now.year, now.month);
+        final label = financialMonthLabel(now, payday);
+        return DateRange.financialMonth(label.year, label.month, payday);
       case PeriodPreset.lastMonth:
-        return DateRange.month(now.year, now.month - 1);
+        final thisLabel = financialMonthLabel(now, payday);
+        final previous = DateTime(thisLabel.year, thisLabel.month - 1);
+        return DateRange.financialMonth(previous.year, previous.month, payday);
       case PeriodPreset.thisYear:
         return DateRange(
             start: DateTime(now.year), end: DateTime(now.year + 1));

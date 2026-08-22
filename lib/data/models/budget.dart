@@ -20,9 +20,6 @@ class Budget {
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  DateTime get periodStart => DateTime(year, month);
-  DateTime get periodEnd => DateTime(year, month + 1);
-
   Budget copyWith({
     String? categoryId,
     double? amount,

@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:duitku/core/finance/date_range.dart';
 import 'package:duitku/core/finance/finance_calculator.dart';
+import 'package:duitku/core/finance/insight_calculator.dart';
 import 'package:duitku/core/providers/finance_snapshot.dart';
+import 'package:duitku/core/providers/providers.dart';
 import 'package:duitku/core/theme/app_theme.dart';
 import 'package:duitku/core/utils/formatters.dart';
 import 'package:duitku/data/models/transaction.dart';
@@ -12,8 +14,9 @@ import 'package:duitku/widgets/section_card.dart';
 import 'package:duitku/widgets/state_views.dart';
 
 final reportMonthProvider = StateProvider<DateTime>((ref) {
-  final now = DateTime.now();
-  return DateTime(now.year, now.month);
+  final payday = ref.read(settingsProvider).valueOrNull?.payday ?? 1;
+  final label = DateRange.financialMonthLabel(DateTime.now(), payday);
+  return DateTime(label.year, label.month);
 });
 
 class ReportsScreen extends ConsumerWidget {
@@ -23,6 +26,7 @@ class ReportsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final snapshotAsync = ref.watch(financeSnapshotProvider);
     final month = ref.watch(reportMonthProvider);
+    final payday = ref.settings.payday;
 
     return DefaultTabController(
       length: 3,
@@ -41,7 +45,8 @@ class ReportsScreen extends ConsumerWidget {
           loading: () => const LoadingView(),
           error: (error, _) => ErrorStateView(error: error),
           data: (snapshot) {
-            final range = DateRange.month(month.year, month.month);
+            final range =
+                DateRange.financialMonth(month.year, month.month, payday);
             return Column(
               children: [
                 _MonthSelector(
@@ -53,7 +58,11 @@ class ReportsScreen extends ConsumerWidget {
                   child: TabBarView(
                     children: [
                       _SummaryTab(
-                          snapshot: snapshot, month: month, range: range),
+                        snapshot: snapshot,
+                        month: month,
+                        range: range,
+                        payday: payday,
+                      ),
                       _CategoryTab(snapshot: snapshot, range: range),
                       _CashTab(snapshot: snapshot, range: range),
                     ],
@@ -104,11 +113,13 @@ class _SummaryTab extends StatelessWidget {
     required this.snapshot,
     required this.month,
     required this.range,
+    required this.payday,
   });
 
   final FinanceSnapshot snapshot;
   final DateTime month;
   final DateRange range;
+  final int payday;
 
   @override
   Widget build(BuildContext context) {
@@ -121,6 +132,11 @@ class _SummaryTab extends StatelessWidget {
       snapshot.transactions,
       range,
     ).take(5).toList();
+    final insight = InsightCalculator.monthOverMonth(
+      snapshot.transactions,
+      month,
+      payday: payday,
+    );
 
     final months = List.generate(
       6,
@@ -174,6 +190,8 @@ class _SummaryTab extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 20),
+        _InsightCard(insight: insight, snapshot: snapshot),
+        const SizedBox(height: 20),
         const SectionHeader(
           title: 'Tren 6 Bulan',
           subtitle: 'Pemasukan vs pengeluaran',
@@ -184,6 +202,7 @@ class _SummaryTab extends StatelessWidget {
             child: _MonthlyBarChart(
               months: months,
               transactions: snapshot.transactions,
+              payday: payday,
             ),
           ),
         ),
@@ -225,16 +244,85 @@ class _SummaryTab extends StatelessWidget {
   }
 }
 
+class _InsightCard extends StatelessWidget {
+  const _InsightCard({required this.insight, required this.snapshot});
+
+  final MonthOverMonthInsight insight;
+  final FinanceSnapshot snapshot;
+
+  List<String> _sentences() {
+    final sentences = <String>[];
+
+    final overallPercent = insight.expensePercentChange;
+    if (overallPercent != null && overallPercent.abs() >= 1) {
+      final direction = overallPercent > 0 ? 'naik' : 'turun';
+      sentences.add(
+        'Total pengeluaran $direction ${overallPercent.abs().toStringAsFixed(0)}% '
+        'dari bulan lalu.',
+      );
+    }
+
+    for (final change in insight.topCategoryChanges.take(2)) {
+      final percent = change.percentChange;
+      if (percent == null || percent.abs() < 1) continue;
+      final name = snapshot.categoriesById[change.categoryId]?.name ??
+          'Tanpa kategori';
+      final direction = percent > 0 ? 'naik' : 'turun';
+      sentences.add(
+        'Pengeluaran $name $direction ${percent.abs().toStringAsFixed(0)}% '
+        'dari bulan lalu.',
+      );
+    }
+
+    return sentences;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sentences = _sentences();
+    return SectionCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.insights, color: AppColors.brand),
+          const SizedBox(width: 12),
+          Expanded(
+            child: sentences.isEmpty
+                ? const Text(
+                    'Belum cukup data bulan lalu untuk dibandingkan.',
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final sentence in sentences)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(sentence),
+                        ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MonthlyBarChart extends StatelessWidget {
-  const _MonthlyBarChart({required this.months, required this.transactions});
+  const _MonthlyBarChart({
+    required this.months,
+    required this.transactions,
+    required this.payday,
+  });
 
   final List<DateTime> months;
   final List<TransactionRecord> transactions;
+  final int payday;
 
   @override
   Widget build(BuildContext context) {
     final data = months.map((month) {
-      final range = DateRange.month(month.year, month.month);
+      final range = DateRange.financialMonth(month.year, month.month, payday);
       return (
         month: month,
         income: FinanceCalculator.totalIncome(transactions, range),

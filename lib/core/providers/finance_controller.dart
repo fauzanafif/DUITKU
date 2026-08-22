@@ -4,6 +4,8 @@ import 'package:duitku/core/providers/providers.dart';
 import 'package:duitku/data/models/account.dart';
 import 'package:duitku/data/models/budget.dart';
 import 'package:duitku/data/models/category.dart';
+import 'package:duitku/data/models/debt.dart';
+import 'package:duitku/data/models/recurring_rule.dart';
 import 'package:duitku/data/models/saving_goal.dart';
 import 'package:duitku/data/models/transaction.dart';
 import 'package:duitku/data/repositories/transaction_repository.dart';
@@ -201,6 +203,154 @@ class FinanceController {
         .read(savingGoalRepositoryProvider)
         .removeContribution(goal, contributionId);
     _refresh();
+  }
+
+  Future<Debt> createDebt({
+    required String name,
+    required DebtType type,
+    required double remainingAmount,
+    required int dueDay,
+    required int colorValue,
+    required int iconCodePoint,
+    double? totalAmount,
+    double? installmentAmount,
+    DateTime? startDate,
+    String? accountId,
+    bool reminderEnabled = false,
+  }) async {
+    final debt = await _ref.read(debtRepositoryProvider).create(
+          name: name,
+          type: type,
+          remainingAmount: remainingAmount,
+          dueDay: dueDay,
+          colorValue: colorValue,
+          iconCodePoint: iconCodePoint,
+          totalAmount: totalAmount,
+          installmentAmount: installmentAmount,
+          startDate: startDate,
+          accountId: accountId,
+          reminderEnabled: reminderEnabled,
+        );
+    _refresh();
+    return debt;
+  }
+
+  Future<void> saveDebt(Debt debt) async {
+    await _ref.read(debtRepositoryProvider).save(debt);
+    _refresh();
+  }
+
+  Future<void> deleteDebt(String id) async {
+    await _ref.read(transactionRepositoryProvider).unlinkDebt(id);
+    await _ref.read(debtRepositoryProvider).delete(id);
+    _refresh();
+  }
+
+  /// Books a payment against [debt] as a real expense transaction (so it
+  /// flows through reports/insights/health score) and reduces the debt's
+  /// remaining balance by the same amount.
+  Future<void> payDebt(
+    Debt debt, {
+    required double amount,
+    required String accountId,
+    required DateTime date,
+    String? note,
+  }) async {
+    final categories = await _ref.read(categoryRepositoryProvider).getAll();
+    final expenseCategories =
+        categories.where((c) => c.kind == CategoryKind.expense);
+    if (expenseCategories.isEmpty) {
+      throw StateError(
+          'Belum ada kategori pengeluaran. Buat kategori dulu di Pengaturan.');
+    }
+    final billCategory = expenseCategories.firstWhere(
+      (c) => c.name == 'Tagihan',
+      orElse: () => expenseCategories.first,
+    );
+
+    await addTransaction(
+      TransactionDraft(
+        type: TransactionType.expense,
+        title: 'Bayar ${debt.name}',
+        amount: amount,
+        accountId: accountId,
+        categoryId: billCategory.id,
+        transactionDateTime: date,
+        note: note,
+        debtId: debt.id,
+      ),
+    );
+    final remaining = (debt.remainingAmount - amount).clamp(0, double.infinity);
+    await saveDebt(debt.copyWith(
+      remainingAmount: remaining.toDouble(),
+      isSettled: remaining <= 0,
+    ));
+  }
+
+  Future<RecurringRule> createRecurringRule({
+    required String title,
+    required TransactionType type,
+    required double amount,
+    required String accountId,
+    required RecurringInterval intervalUnit,
+    required int intervalCount,
+    required DateTime nextDueDate,
+    String? categoryId,
+  }) async {
+    final rule = await _ref.read(recurringRuleRepositoryProvider).create(
+          title: title,
+          type: type,
+          amount: amount,
+          accountId: accountId,
+          intervalUnit: intervalUnit,
+          intervalCount: intervalCount,
+          nextDueDate: nextDueDate,
+          categoryId: categoryId,
+        );
+    _refresh();
+    return rule;
+  }
+
+  Future<void> saveRecurringRule(RecurringRule rule) async {
+    await _ref.read(recurringRuleRepositoryProvider).save(rule);
+    _refresh();
+  }
+
+  Future<void> deleteRecurringRule(String id) async {
+    await _ref.read(recurringRuleRepositoryProvider).delete(id);
+    await _ref.read(notificationServiceProvider).cancelReminderFor(
+          'recurring',
+          id,
+        );
+    _refresh();
+  }
+
+  /// Books the due occurrence as a real transaction and advances the rule
+  /// to its next occurrence. Nothing is ever booked without this explicit
+  /// call — a due rule just sits in the reminder list until the user acts.
+  Future<void> confirmRecurring(RecurringRule rule, {DateTime? date}) async {
+    final when = date ?? DateTime.now();
+    await addTransaction(
+      TransactionDraft(
+        type: rule.type,
+        title: rule.title,
+        amount: rule.amount,
+        accountId: rule.accountId,
+        categoryId: rule.categoryId,
+        transactionDateTime: when,
+        note: 'Transaksi berulang',
+      ),
+    );
+    await saveRecurringRule(rule.copyWith(
+      nextDueDate: rule.advancedDueDate(),
+      lastGeneratedDate: when,
+    ));
+  }
+
+  /// Moves the rule to its next occurrence without booking a transaction.
+  Future<void> skipRecurring(RecurringRule rule) async {
+    await saveRecurringRule(
+        rule.copyWith(nextDueDate: rule.advancedDueDate()));
   }
 }
 

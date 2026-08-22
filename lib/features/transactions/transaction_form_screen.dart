@@ -3,14 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:duitku/core/utils/app_icons.dart';
+import 'package:duitku/core/finance/category_suggester.dart';
 import 'package:duitku/core/finance/transaction_validator.dart';
 import 'package:duitku/core/providers/finance_controller.dart';
 import 'package:duitku/core/providers/finance_snapshot.dart';
+import 'package:duitku/core/providers/providers.dart';
 import 'package:duitku/core/utils/formatters.dart';
 import 'package:duitku/data/models/account.dart';
 import 'package:duitku/data/models/category.dart';
 import 'package:duitku/data/models/transaction.dart';
 import 'package:duitku/data/repositories/transaction_repository.dart';
+import 'package:duitku/features/transactions/salary_allocation_sheet.dart';
 import 'package:duitku/widgets/amount_field.dart';
 import 'package:duitku/widgets/state_views.dart';
 
@@ -44,6 +47,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   String? _destinationAccountId;
   bool _saving = false;
   bool _prefilled = false;
+  String? _dismissedSuggestionFor;
 
   bool get _isEditing => widget.transactionId != null;
 
@@ -105,6 +109,19 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         ? CategoryKind.income
         : CategoryKind.expense;
     return snapshot.categoriesOf(kind).firstOrNull?.id;
+  }
+
+  /// Null unless there is a confident, not-yet-dismissed suggestion that
+  /// differs from the category already selected.
+  String? _suggestedCategoryId(FinanceSnapshot snapshot) {
+    if (_type == TransactionType.transfer) return null;
+    final title = _titleController.text;
+    final suggestion =
+        CategorySuggester.suggest(title, snapshot.transactions, _type);
+    if (suggestion == null || suggestion == _categoryId) return null;
+    final key = '${title.trim().toLowerCase()}|$suggestion';
+    if (_dismissedSuggestionFor == key) return null;
+    return suggestion;
   }
 
   @override
@@ -262,7 +279,9 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               hintText: isTransfer ? 'Transfer antar akun' : 'Opsional',
             ),
             textCapitalization: TextCapitalization.sentences,
+            onChanged: (_) => setState(() {}),
           ),
+          if (!isTransfer) _buildSuggestionChip(snapshot, categories),
           const SizedBox(height: 16),
           TextFormField(
             controller: _noteController,
@@ -284,6 +303,33 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             label: Text(_isEditing ? 'Simpan Perubahan' : 'Simpan'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionChip(
+    FinanceSnapshot snapshot,
+    List<Category> categories,
+  ) {
+    final suggestedId = _suggestedCategoryId(snapshot);
+    if (suggestedId == null) return const SizedBox.shrink();
+    final category = snapshot.categoriesById[suggestedId];
+    if (category == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: InputChip(
+        avatar: Icon(
+          AppIcons.resolve(category.iconCodePoint),
+          size: 16,
+          color: Color(category.colorValue),
+        ),
+        label: Text('Saran kategori: ${category.name}'),
+        onPressed: () => setState(() => _categoryId = suggestedId),
+        onDeleted: () => setState(() {
+          _dismissedSuggestionFor =
+              '${_titleController.text.trim().toLowerCase()}|$suggestedId';
+        }),
       ),
     );
   }
@@ -389,6 +435,16 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         await controller.updateTransaction(widget.transactionId!, draft);
       } else {
         await controller.addTransaction(draft);
+      }
+      if (!mounted) return;
+      if (!_isEditing &&
+          _type == TransactionType.income &&
+          ref.settings.allocationEnabled) {
+        await showSalaryAllocationSheet(
+          context,
+          amount: amount,
+          date: _dateTime,
+        );
       }
       if (!mounted) return;
       Navigator.of(context).pop();

@@ -2,6 +2,8 @@ import 'package:duitku/data/models/account.dart';
 import 'package:duitku/data/models/app_settings.dart';
 import 'package:duitku/data/models/budget.dart';
 import 'package:duitku/data/models/category.dart';
+import 'package:duitku/data/models/debt.dart';
+import 'package:duitku/data/models/recurring_rule.dart';
 import 'package:duitku/data/models/saving_goal.dart';
 import 'package:duitku/data/models/transaction.dart';
 
@@ -30,6 +32,14 @@ abstract class DuitkuDatabase {
   Future<List<SavingGoal>> readSavingGoals();
   Future<void> writeSavingGoal(SavingGoal goal);
   Future<void> deleteSavingGoal(String id);
+
+  Future<List<Debt>> readDebts();
+  Future<void> writeDebt(Debt debt);
+  Future<void> deleteDebt(String id);
+
+  Future<List<RecurringRule>> readRecurringRules();
+  Future<void> writeRecurringRule(RecurringRule rule);
+  Future<void> deleteRecurringRule(String id);
 
   Future<AppSettings> readSettings();
   Future<void> writeSettings(AppSettings settings);

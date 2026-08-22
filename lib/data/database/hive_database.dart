@@ -7,6 +7,8 @@ import 'package:duitku/data/models/account.dart';
 import 'package:duitku/data/models/app_settings.dart';
 import 'package:duitku/data/models/budget.dart';
 import 'package:duitku/data/models/category.dart';
+import 'package:duitku/data/models/debt.dart';
+import 'package:duitku/data/models/recurring_rule.dart';
 import 'package:duitku/data/models/saving_goal.dart';
 import 'package:duitku/data/models/transaction.dart';
 
@@ -20,6 +22,8 @@ class HiveDatabase implements DuitkuDatabase {
   static const _transactionsBox = 'duitku_transactions';
   static const _budgetsBox = 'duitku_budgets';
   static const _goalsBox = 'duitku_saving_goals';
+  static const _debtsBox = 'duitku_debts';
+  static const _recurringRulesBox = 'duitku_recurring_rules';
   static const _settingsBox = 'duitku_settings';
   static const _settingsKey = 'settings';
 
@@ -28,6 +32,8 @@ class HiveDatabase implements DuitkuDatabase {
   late final Box<String> _transactions;
   late final Box<String> _budgets;
   late final Box<String> _goals;
+  late final Box<String> _debts;
+  late final Box<String> _recurringRules;
   late final Box<String> _settings;
 
   bool _initialized = false;
@@ -41,6 +47,8 @@ class HiveDatabase implements DuitkuDatabase {
     _transactions = await Hive.openBox<String>(_transactionsBox);
     _budgets = await Hive.openBox<String>(_budgetsBox);
     _goals = await Hive.openBox<String>(_goalsBox);
+    _debts = await Hive.openBox<String>(_debtsBox);
+    _recurringRules = await Hive.openBox<String>(_recurringRulesBox);
     _settings = await Hive.openBox<String>(_settingsBox);
     _initialized = true;
   }
@@ -117,6 +125,28 @@ class HiveDatabase implements DuitkuDatabase {
   Future<void> deleteSavingGoal(String id) => _goals.delete(id);
 
   @override
+  Future<List<Debt>> readDebts() async =>
+      _decodeAll(_debts, Debt.fromJson);
+
+  @override
+  Future<void> writeDebt(Debt debt) =>
+      _debts.put(debt.id, jsonEncode(debt.toJson()));
+
+  @override
+  Future<void> deleteDebt(String id) => _debts.delete(id);
+
+  @override
+  Future<List<RecurringRule>> readRecurringRules() async =>
+      _decodeAll(_recurringRules, RecurringRule.fromJson);
+
+  @override
+  Future<void> writeRecurringRule(RecurringRule rule) =>
+      _recurringRules.put(rule.id, jsonEncode(rule.toJson()));
+
+  @override
+  Future<void> deleteRecurringRule(String id) => _recurringRules.delete(id);
+
+  @override
   Future<AppSettings> readSettings() async {
     final raw = _settings.get(_settingsKey);
     if (raw == null) return const AppSettings();
@@ -138,5 +168,7 @@ class HiveDatabase implements DuitkuDatabase {
     await _transactions.clear();
     await _budgets.clear();
     await _goals.clear();
+    await _debts.clear();
+    await _recurringRules.clear();
   }
 }

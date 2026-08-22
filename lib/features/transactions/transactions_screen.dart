@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:duitku/core/finance/date_range.dart';
 import 'package:duitku/core/finance/finance_calculator.dart';
 import 'package:duitku/core/providers/finance_snapshot.dart';
+import 'package:duitku/core/providers/providers.dart';
 import 'package:duitku/core/theme/app_theme.dart';
 import 'package:duitku/core/utils/formatters.dart';
 import 'package:duitku/data/models/transaction.dart';
@@ -60,7 +61,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         loading: () => const LoadingView(),
         error: (error, _) => ErrorStateView(error: error),
         data: (snapshot) {
-          final filtered = filter.apply(snapshot.transactions);
+          final filtered =
+              filter.apply(snapshot.transactions, payday: ref.settings.payday);
           final grouped = FinanceCalculator.groupByDay(filtered);
           final days = grouped.keys.toList()
             ..sort((a, b) => filter.newestFirst ? b.compareTo(a) : a.compareTo(b));

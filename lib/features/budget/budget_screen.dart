@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:duitku/core/finance/date_range.dart';
 import 'package:duitku/core/finance/finance_calculator.dart';
 import 'package:duitku/core/providers/finance_controller.dart';
 import 'package:duitku/core/providers/finance_snapshot.dart';
@@ -14,8 +15,9 @@ import 'package:duitku/widgets/section_card.dart';
 import 'package:duitku/widgets/state_views.dart';
 
 final budgetMonthProvider = StateProvider<DateTime>((ref) {
-  final now = DateTime.now();
-  return DateTime(now.year, now.month);
+  final payday = ref.read(settingsProvider).valueOrNull?.payday ?? 1;
+  final label = DateRange.financialMonthLabel(DateTime.now(), payday);
+  return DateTime(label.year, label.month);
 });
 
 class BudgetScreen extends ConsumerWidget {
@@ -24,6 +26,7 @@ class BudgetScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final month = ref.watch(budgetMonthProvider);
+    final payday = ref.settings.payday;
     final snapshotAsync = ref.watch(financeSnapshotProvider);
     final budgetsAsync = ref.watch(budgetsProvider);
 
@@ -46,7 +49,8 @@ class BudgetScreen extends ConsumerWidget {
                 .toList();
             final statuses = monthly
                 .map((budget) => FinanceCalculator.budgetStatus(
-                    budget, snapshot.transactions))
+                    budget, snapshot.transactions,
+                    payday: payday))
                 .toList()
               ..sort((a, b) => b.ratio.compareTo(a.ratio));
 

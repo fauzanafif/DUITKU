@@ -5,6 +5,8 @@ import 'package:duitku/data/models/account.dart';
 import 'package:duitku/data/models/app_settings.dart';
 import 'package:duitku/data/models/budget.dart';
 import 'package:duitku/data/models/category.dart';
+import 'package:duitku/data/models/debt.dart';
+import 'package:duitku/data/models/recurring_rule.dart';
 import 'package:duitku/data/models/saving_goal.dart';
 import 'package:duitku/data/models/transaction.dart';
 
@@ -16,6 +18,8 @@ class InMemoryDatabase implements DuitkuDatabase {
   final Map<String, String> _transactions = {};
   final Map<String, String> _budgets = {};
   final Map<String, String> _goals = {};
+  final Map<String, String> _debts = {};
+  final Map<String, String> _recurringRules = {};
   String? _settings;
 
   @override
@@ -86,6 +90,28 @@ class InMemoryDatabase implements DuitkuDatabase {
   Future<void> deleteSavingGoal(String id) async => _goals.remove(id);
 
   @override
+  Future<List<Debt>> readDebts() async => _decodeAll(_debts, Debt.fromJson);
+
+  @override
+  Future<void> writeDebt(Debt debt) async =>
+      _debts[debt.id] = jsonEncode(debt.toJson());
+
+  @override
+  Future<void> deleteDebt(String id) async => _debts.remove(id);
+
+  @override
+  Future<List<RecurringRule>> readRecurringRules() async =>
+      _decodeAll(_recurringRules, RecurringRule.fromJson);
+
+  @override
+  Future<void> writeRecurringRule(RecurringRule rule) async =>
+      _recurringRules[rule.id] = jsonEncode(rule.toJson());
+
+  @override
+  Future<void> deleteRecurringRule(String id) async =>
+      _recurringRules.remove(id);
+
+  @override
   Future<AppSettings> readSettings() async {
     final raw = _settings;
     if (raw == null) return const AppSettings();
@@ -103,5 +129,7 @@ class InMemoryDatabase implements DuitkuDatabase {
     _transactions.clear();
     _budgets.clear();
     _goals.clear();
+    _debts.clear();
+    _recurringRules.clear();
   }
 }
