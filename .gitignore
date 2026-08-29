@@ -1,9 +1,16 @@
-# Miscellaneous
+# ==============================================================================
+# DUITKU - .gitignore (Flutter / Dart)
+# ==============================================================================
+
+# --- Miscellaneous ------------------------------------------------------------
 *.class
+*.lock
+!pubspec.lock
 *.log
 *.pyc
 *.swp
 .DS_Store
+Thumbs.db
 .atom/
 .build/
 .buildlog/
@@ -12,37 +19,81 @@
 .swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
+# --- IDE / Editor ------------------------------------------------------------
 *.iml
 *.ipr
 *.iws
 .idea/
+# .vscode/ dibiarkan ter-commit agar konfigurasi launch/tasks tim ikut terbawa.
+# Abaikan hanya file setelan personal:
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
+!.vscode/extensions.json
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
+# --- Flutter / Dart / Pub ---------------------------------------------------
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
 /coverage/
+lcov.info
 
-# Symbolication related
+# Flutter Version Management (FVM)
+.fvm/
+.fvmrc
+
+# File generatif (uncomment jika kode generated tidak ingin di-commit)
+# *.g.dart
+# *.freezed.dart
+# *.mocks.dart
+
+# --- Symbolication / Obfuscation ------------------------------------------
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# --- Android --------------------------------------------------------------
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/.gradle/
+/android/.kotlin/
+/android/captures/
+/android/local.properties
+/android/key.properties
+**/*.keystore
+**/*.jks
 
-# Widget Preview related
+# --- iOS / macOS ---------------------------------------------------------
+**/Pods/
+**/.symlinks/
+**/Flutter/App.framework
+**/Flutter/Flutter.framework
+**/Flutter/Generated.xcconfig
+**/Flutter/flutter_export_environment.sh
+**/ServiceDefinitions.json
+**/xcuserdata/
+**/DerivedData/
+
+# --- Secrets / Environment --------------------------------------------------
+*.env
+.env.*
+!.env.example
+secrets.dart
+lib/**/secrets.dart
+google-services.json
+GoogleService-Info.plist
+
+# --- Widget Preview -------------------------------------------------------
 .widget_preview/
+
+# --- Output aplikasi (backup/export lokal saat testing) --------------------
+/exports/
+*.apk
+*.aab
+*.ipa
