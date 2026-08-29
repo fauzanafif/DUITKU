@@ -36,6 +36,11 @@ DUITKU adalah aplikasi pengelola keuangan pribadi berbasis Flutter. Aplikasi ini
 - `flutter_local_notifications` untuk notifikasi lokal
 - `pdf` untuk export laporan bulanan
 - `image_picker` untuk foto profil
+- `path_provider` untuk lokasi penyimpanan file backup/export
+- `crypto` untuk hashing PIN aplikasi
+- `uuid` untuk id entitas, `timezone` untuk penjadwalan notifikasi lokal
+
+Application id (Android): `com.duitku.duitku`.
 
 ## Struktur proyek
 
@@ -55,6 +60,8 @@ lib/
 
 test/                # Unit test untuk logika finansial, kalkulator,
                      # controller, Activity Log, dan export laporan
+tool/                # Skrip pengembangan (mis. generate_adaptive_icon.dart
+                     # untuk membangun ikon adaptif Android)
 ```
 
 ## Persyaratan
@@ -82,6 +89,18 @@ flutter run -d chrome
 ```
 
 Gunakan device lain dengan mengganti target pada perintah terakhir, misalnya `flutter run -d windows` atau `flutter run -d android`.
+
+## Build rilis
+
+```powershell
+flutter build apk --release        # Android (APK)
+flutter build appbundle --release  # Android (Play Store)
+flutter build web --release        # Web
+```
+
+Untuk rilis Android yang ditandatangani, buat `android/key.properties` dan file
+keystore Anda sendiri. Kedua file tersebut sengaja diabaikan Git (lihat
+`.gitignore`) dan tidak boleh dibagikan.
 
 ## Pengujian dan analisis
 
