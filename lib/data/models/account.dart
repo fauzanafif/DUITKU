@@ -67,26 +67,26 @@ class Account {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'type': type.name,
-        'initialBalance': initialBalance,
-        'iconCodePoint': iconCodePoint,
-        'colorValue': colorValue,
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt.toIso8601String(),
-        'archived': archived,
-      };
+    'id': id,
+    'name': name,
+    'type': type.name,
+    'initialBalance': initialBalance,
+    'iconCodePoint': iconCodePoint,
+    'colorValue': colorValue,
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+    'archived': archived,
+  };
 
   factory Account.fromJson(Map<String, dynamic> json) => Account(
-        id: readString(json, 'id'),
-        name: readString(json, 'name'),
-        type: readEnum(json, 'type', AccountType.values, AccountType.other),
-        initialBalance: readDouble(json, 'initialBalance'),
-        iconCodePoint: readInt(json, 'iconCodePoint', fallback: 0xe263),
-        colorValue: readInt(json, 'colorValue', fallback: 0xff2563eb),
-        createdAt: readDate(json, 'createdAt'),
-        updatedAt: readDate(json, 'updatedAt'),
-        archived: readBool(json, 'archived'),
-      );
+    id: readString(json, 'id'),
+    name: readString(json, 'name'),
+    type: readEnum(json, 'type', AccountType.values, AccountType.other),
+    initialBalance: readDouble(json, 'initialBalance'),
+    iconCodePoint: readInt(json, 'iconCodePoint', fallback: 0xe263),
+    colorValue: readInt(json, 'colorValue', fallback: 0xff2563eb),
+    createdAt: readDate(json, 'createdAt'),
+    updatedAt: readDate(json, 'updatedAt'),
+    archived: readBool(json, 'archived'),
+  );
 }
