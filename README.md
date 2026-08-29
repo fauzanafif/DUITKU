@@ -4,15 +4,21 @@ DUITKU adalah aplikasi pengelola keuangan pribadi berbasis Flutter. Aplikasi ini
 
 ## Fitur
 
-- Dashboard saldo, pemasukan, pengeluaran, dan ringkasan periode
-- Transaksi `Income`, `Expense`, dan `Transfer` antar akun
-- Banyak akun keuangan, seperti rekening bank dan kas
-- Kategori pemasukan dan pengeluaran
+- Dashboard saldo, skor kesehatan keuangan, grafik pemasukan/pengeluaran, dan ringkasan budget
+- Transaksi `Income`, `Expense`, dan `Transfer` antar akun, lengkap dengan CRUD dan konfirmasi hapus
+- Banyak akun keuangan, seperti rekening bank, kas, e-wallet, dan uang jajan
+- Kategori bawaan (default/system) pemasukan & pengeluaran otomatis tersedia sejak pertama kali aplikasi dibuka — tidak bisa diedit/dihapus, dipisahkan dari kategori buatan pengguna di layar Kategori
+- Kategori kustom dengan CRUD penuh, termasuk alur "Lainnya → buat kategori kustom" saat mencatat transaksi
 - Anggaran bulanan berdasarkan kategori
-- Target tabungan dengan pelacakan progres
-- Laporan dan breakdown transaksi berdasarkan kategori
-- Onboarding, profil, pengaturan tema, serta pengaturan mata uang
-- Proteksi aplikasi dengan autentikasi lokal jika tersedia di perangkat
+- Target tabungan dengan pelacakan progres dan streak
+- Cicilan & utang (kartu kredit, paylater, cicilan barang) dengan pengingat jatuh tempo
+- Transaksi berulang untuk langganan dan tagihan rutin
+- Limit uang jajan per akun
+- Laporan dan breakdown transaksi berdasarkan kategori, plus fitur gajian/alokasi
+- Activity Log / audit history: setiap perubahan data (tambah/ubah/hapus di transaksi, kategori, budget, rekening) tercatat otomatis dan permanen — tidak ikut terhapus saat data lain dihapus atau di-restore
+- Backup & restore data (JSON), export transaksi (CSV), dan export laporan bulanan (PDF)
+- Onboarding, profil dengan foto, pengaturan tema, serta pengaturan mata uang
+- Proteksi aplikasi dengan PIN dan autentikasi biometrik jika tersedia di perangkat
 - Notifikasi lokal
 - Penyimpanan offline-first menggunakan Hive
 
@@ -28,6 +34,8 @@ DUITKU adalah aplikasi pengelola keuangan pribadi berbasis Flutter. Aplikasi ini
 - `local_auth` untuk autentikasi biometrik atau perangkat
 - `share_plus` untuk berbagi data atau laporan
 - `flutter_local_notifications` untuk notifikasi lokal
+- `pdf` untuk export laporan bulanan
+- `image_picker` untuk foto profil
 
 ## Struktur proyek
 
@@ -37,16 +45,16 @@ lib/
 ├── core/            # Logika finansial, provider, tema, dan utilitas
 ├── data/            # Database, model, dan repository
 ├── features/        # Modul fitur aplikasi
-│   ├── accounts/    ├── budget/       ├── dashboard/
-│   ├── onboarding/  ├── profile/      ├── reports/
-│   ├── savings/     ├── security/     ├── settings/
-│   ├── shell/       └── transactions/
+│   ├── accounts/     ├── activity_log/  ├── budget/
+│   ├── dashboard/    ├── debts/         ├── onboarding/
+│   ├── profile/      ├── recurring/     ├── reports/
+│   ├── savings/      ├── security/      ├── settings/
+│   ├── shell/        └── transactions/
 ├── widgets/         # Widget yang digunakan bersama
 └── main.dart        # Entry point aplikasi
 
-test/
-├── app_test.dart
-└── finance_test.dart
+test/                # Unit test untuk logika finansial, kalkulator,
+                     # controller, Activity Log, dan export laporan
 ```
 
 ## Persyaratan
@@ -82,16 +90,17 @@ flutter test
 flutter analyze
 ```
 
-Test mencakup pemuatan aplikasi, formatter mata uang, perhitungan saldo, transaksi, transfer, serta status anggaran.
+Test mencakup pemuatan aplikasi, formatter mata uang, perhitungan saldo, transaksi, transfer, status anggaran, cicilan, transaksi berulang, skor kesehatan, Activity Log, dan export laporan.
 
 ## Penyimpanan data
 
-Data aplikasi disimpan secara lokal di perangkat menggunakan Hive. Saat ini belum ada sinkronisasi cloud, sehingga penghapusan data aplikasi atau perangkat dapat menghilangkan data yang tersimpan. Fitur backup/restore dan export laporan dapat ditambahkan pada pengembangan berikutnya.
+Data aplikasi disimpan secara lokal di perangkat menggunakan Hive. Saat ini belum ada sinkronisasi cloud, sehingga penghapusan data aplikasi atau perangkat dapat menghilangkan data yang tersimpan. Gunakan fitur Backup & Restore (JSON) untuk memindahkan data antar perangkat.
+
+Activity Log disimpan di box Hive terpisah (`duitku_activity_logs`) yang sengaja tidak ikut dibersihkan saat restore "Ganti" data dan tidak dimasukkan ke file backup, sehingga audit trail selalu utuh.
 
 ## Roadmap
 
-- Backup dan restore data
-- Export laporan ke CSV atau PDF
+- Sinkronisasi cloud dan multi-perangkat
 - Pengingat transaksi dan anggaran yang lebih fleksibel
 - Penyempurnaan onboarding dan migrasi data
 

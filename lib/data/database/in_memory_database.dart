@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:duitku/data/database/duitku_database.dart';
 import 'package:duitku/data/models/account.dart';
+import 'package:duitku/data/models/activity_log_entry.dart';
 import 'package:duitku/data/models/app_settings.dart';
 import 'package:duitku/data/models/budget.dart';
 import 'package:duitku/data/models/category.dart';
@@ -22,6 +23,7 @@ class InMemoryDatabase implements DuitkuDatabase {
   final Map<String, String> _debts = {};
   final Map<String, String> _recurringRules = {};
   final Map<String, String> _allowanceLimits = {};
+  final Map<String, String> _activityLogs = {};
   String? _settings;
 
   @override
@@ -124,6 +126,14 @@ class InMemoryDatabase implements DuitkuDatabase {
   @override
   Future<void> deleteAllowanceLimit(String id) async =>
       _allowanceLimits.remove(id);
+
+  @override
+  Future<List<ActivityLogEntry>> readActivityLogs() async =>
+      _decodeAll(_activityLogs, ActivityLogEntry.fromJson);
+
+  @override
+  Future<void> writeActivityLog(ActivityLogEntry entry) async =>
+      _activityLogs[entry.id] = jsonEncode(entry.toJson());
 
   @override
   Future<AppSettings> readSettings() async {

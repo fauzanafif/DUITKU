@@ -6,6 +6,7 @@ import 'package:duitku/core/services/notification_service.dart';
 import 'package:duitku/core/services/pin_service.dart';
 import 'package:duitku/data/database/duitku_database.dart';
 import 'package:duitku/data/models/account.dart';
+import 'package:duitku/data/models/activity_log_entry.dart';
 import 'package:duitku/data/models/app_settings.dart';
 import 'package:duitku/data/models/budget.dart';
 import 'package:duitku/data/models/category.dart';
@@ -15,6 +16,7 @@ import 'package:duitku/data/models/recurring_rule.dart';
 import 'package:duitku/data/models/saving_goal.dart';
 import 'package:duitku/data/models/transaction.dart';
 import 'package:duitku/data/repositories/account_repository.dart';
+import 'package:duitku/data/repositories/activity_log_repository.dart';
 import 'package:duitku/data/repositories/allowance_limit_repository.dart';
 import 'package:duitku/data/repositories/budget_repository.dart';
 import 'package:duitku/data/repositories/category_repository.dart';
@@ -56,6 +58,9 @@ final allowanceLimitRepositoryProvider = Provider<AllowanceLimitRepository>(
 final settingsRepositoryProvider = Provider<SettingsRepository>(
     (ref) => SettingsRepository(ref.watch(databaseProvider)));
 
+final activityLogRepositoryProvider = Provider<ActivityLogRepository>(
+    (ref) => ActivityLogRepository(ref.watch(databaseProvider)));
+
 final backupServiceProvider =
     Provider<BackupService>((ref) => BackupService(ref.watch(databaseProvider)));
 
@@ -90,6 +95,9 @@ final recurringRulesProvider = FutureProvider<List<RecurringRule>>(
 
 final allowanceLimitsProvider = FutureProvider<List<AllowanceLimit>>(
     (ref) => ref.watch(allowanceLimitRepositoryProvider).getAll());
+
+final activityLogsProvider = FutureProvider<List<ActivityLogEntry>>(
+    (ref) => ref.watch(activityLogRepositoryProvider).getAll());
 
 /// Active rules whose next occurrence is already due. Pure read — nothing
 /// is ever booked or advanced just by looking at this list; the user must
@@ -133,6 +141,7 @@ final List<ProviderOrFamily> financialProviders = [
   debtsProvider,
   recurringRulesProvider,
   allowanceLimitsProvider,
+  activityLogsProvider,
 ];
 
 void invalidateFinancialData(Ref ref) {

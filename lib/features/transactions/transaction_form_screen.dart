@@ -113,6 +113,57 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     return snapshot.categoriesOf(kind).firstOrNull?.id;
   }
 
+  /// Selecting the default "Lainnya" category offers to name and save a
+  /// reusable custom category on the spot, instead of leaving every
+  /// miscellaneous transaction stuck under one generic bucket. Dismissing
+  /// the prompt just keeps "Lainnya" selected — never forced.
+  Future<void> _onCategorySelected(
+    String? categoryId,
+    FinanceSnapshot snapshot,
+  ) async {
+    setState(() => _categoryId = categoryId);
+    final category = snapshot.categoriesById[categoryId];
+    if (category == null || !category.isDefault || category.name != 'Lainnya') {
+      return;
+    }
+
+    final nameController = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Nama Kategori Baru'),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(labelText: 'Nama kategori'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Lewati'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(nameController.text.trim()),
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+    nameController.dispose();
+    if (name == null || name.isEmpty || !mounted) return;
+
+    final created = await ref.read(financeControllerProvider).createCategory(
+          name: name,
+          kind: category.kind,
+          iconCodePoint: category.iconCodePoint,
+          colorValue: category.colorValue,
+        );
+    if (!mounted) return;
+    setState(() => _categoryId = created.id);
+  }
+
   /// Null unless there is a confident, not-yet-dismissed suggestion that
   /// differs from the category already selected.
   String? _suggestedCategoryId(FinanceSnapshot snapshot) {
@@ -231,7 +282,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   ),
               ],
               validator: (value) => value == null ? 'Pilih kategori' : null,
-              onChanged: (value) => setState(() => _categoryId = value),
+              onChanged: (value) => _onCategorySelected(value, snapshot),
             ),
             const SizedBox(height: 16),
           ],

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:duitku/core/providers/providers.dart';
 import 'package:duitku/data/models/transaction.dart';
 import 'package:duitku/features/accounts/accounts_screen.dart';
+import 'package:duitku/features/activity_log/activity_log_screen.dart';
 import 'package:duitku/features/accounts/allowance_screen.dart';
 import 'package:duitku/features/budget/budget_screen.dart';
 import 'package:duitku/features/dashboard/dashboard_screen.dart';
@@ -134,6 +135,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/recurring',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const RecurringScreen(),
+      ),
+      GoRoute(
+        path: '/activity-log',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ActivityLogScreen(),
       ),
       GoRoute(
         path: '/settings',
