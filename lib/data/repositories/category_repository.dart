@@ -37,11 +37,22 @@ class CategoryRepository {
     return category;
   }
 
-  Future<void> save(Category category) => _db.writeCategory(category);
+  /// Default (system) categories are read-only — they can never be edited
+  /// or deleted, so the app is always usable out of the box.
+  Future<void> save(Category category) async {
+    if (category.isDefault) {
+      throw StateError('Kategori bawaan tidak dapat diubah.');
+    }
+    await _db.writeCategory(category);
+  }
 
   /// Deleting a used category is only allowed when the caller supplies a
   /// [reassignTo] category, so no transaction is left dangling.
   Future<void> delete(String id, {String? reassignTo}) async {
+    final categories = await _db.readCategories();
+    if (categories.any((c) => c.id == id && c.isDefault)) {
+      throw StateError('Kategori bawaan tidak dapat dihapus.');
+    }
     final transactions = await _db.readTransactions();
     final used = transactions.where((tx) => tx.categoryId == id).toList();
     if (used.isNotEmpty) {

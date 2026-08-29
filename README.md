@@ -7,7 +7,8 @@ DUITKU adalah aplikasi pengelola keuangan pribadi berbasis Flutter. Aplikasi ini
 - Dashboard saldo, skor kesehatan keuangan, grafik pemasukan/pengeluaran, dan ringkasan budget
 - Transaksi `Income`, `Expense`, dan `Transfer` antar akun, lengkap dengan CRUD dan konfirmasi hapus
 - Banyak akun keuangan, seperti rekening bank, kas, e-wallet, dan uang jajan
-- Kategori pemasukan dan pengeluaran dengan CRUD, termasuk alur "Lainnya → buat kategori kustom" saat mencatat transaksi
+- Kategori bawaan (default/system) pemasukan & pengeluaran otomatis tersedia sejak pertama kali aplikasi dibuka — tidak bisa diedit/dihapus, dipisahkan dari kategori buatan pengguna di layar Kategori
+- Kategori kustom dengan CRUD penuh, termasuk alur "Lainnya → buat kategori kustom" saat mencatat transaksi
 - Anggaran bulanan berdasarkan kategori
 - Target tabungan dengan pelacakan progres dan streak
 - Cicilan & utang (kartu kredit, paylater, cicilan barang) dengan pengingat jatuh tempo

@@ -158,45 +158,142 @@ class _CategoryList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (categories.isEmpty) {
+    final theme = Theme.of(context);
+    final defaults = categories.where((c) => c.isDefault).toList();
+    final custom = categories.where((c) => !c.isDefault).toList();
+
+    if (defaults.isEmpty && custom.isEmpty) {
       return const EmptyStateView(
         icon: Icons.category_outlined,
         title: 'Belum ada kategori',
       );
     }
-    return ListView.separated(
+
+    return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
-      itemCount: categories.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final category = categories[index];
-        final color = Color(category.colorValue);
-        return SectionCard(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          onTap: () => onEdit(category),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: color.withValues(alpha: 0.15),
-                child: Icon(
-                  AppIcons.resolve(category.iconCodePoint),
-                  color: color,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(category.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-              ),
-              IconButton(
-                onPressed: () => onDelete(category),
-                icon: const Icon(Icons.delete_outline),
-              ),
-            ],
+      children: [
+        if (defaults.isNotEmpty) ...[
+          const SectionHeader(
+            title: 'Kategori Bawaan',
+            subtitle: 'Selalu tersedia • tidak bisa diubah atau dihapus',
           ),
-        );
-      },
+          for (final category in defaults)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _CategoryTile(category: category),
+            ),
+          const SizedBox(height: 16),
+        ],
+        const SectionHeader(
+          title: 'Kategori Saya',
+          subtitle: 'Kategori yang kamu buat sendiri',
+        ),
+        if (custom.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+            child: Text(
+              'Belum ada. Tekan tombol + untuk membuat kategori sendiri.',
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          )
+        else
+          for (final category in custom)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _CategoryTile(
+                category: category,
+                onEdit: () => onEdit(category),
+                onDelete: () => onDelete(category),
+              ),
+            ),
+      ],
+    );
+  }
+}
+
+class _CategoryTile extends StatelessWidget {
+  const _CategoryTile({required this.category, this.onEdit, this.onDelete});
+
+  final Category category;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = Color(category.colorValue);
+    return SectionCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      onTap: onEdit,
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: color.withValues(alpha: 0.15),
+            child: Icon(
+              AppIcons.resolve(category.iconCodePoint),
+              color: color,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    category.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                if (category.isDefault) ...[
+                  const SizedBox(width: 8),
+                  const _DefaultBadge(),
+                ],
+              ],
+            ),
+          ),
+          if (onDelete != null)
+            IconButton(
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete_outline),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Icon(
+                Icons.lock_outline,
+                size: 18,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DefaultBadge extends StatelessWidget {
+  const _DefaultBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: scheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        'Bawaan',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: scheme.onSecondaryContainer,
+        ),
+      ),
     );
   }
 }
