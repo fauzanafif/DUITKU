@@ -106,9 +106,13 @@ class BudgetScreen extends ConsumerWidget {
                                       status.budget.categoryId],
                                   onEdit: () => _openEditor(context, ref,
                                       month: month, budget: status.budget),
-                                  onDelete: () => ref
-                                      .read(financeControllerProvider)
-                                      .deleteBudget(status.budget.id),
+                                  onDelete: () => _confirmDelete(
+                                    context,
+                                    ref,
+                                    status.budget,
+                                    snapshot.categoriesById[
+                                        status.budget.categoryId],
+                                  ),
                                 ),
                               ),
                           ],
@@ -137,6 +141,33 @@ class BudgetScreen extends ConsumerWidget {
         child: _BudgetEditor(month: month, budget: budget),
       ),
     );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    Budget budget,
+    Category? category,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Hapus budget "${category?.name ?? 'ini'}"?'),
+        content: const Text('Batas pengeluaran ini akan dihapus.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(financeControllerProvider).deleteBudget(budget.id);
   }
 }
 

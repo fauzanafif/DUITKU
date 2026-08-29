@@ -1,7 +1,10 @@
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:duitku/core/providers/providers.dart';
+import 'package:duitku/core/utils/formatters.dart';
 import 'package:duitku/data/models/account.dart';
+import 'package:duitku/data/models/activity_log_entry.dart';
 import 'package:duitku/data/models/budget.dart';
 import 'package:duitku/data/models/category.dart';
 import 'package:duitku/data/models/allowance_limit.dart';
@@ -25,6 +28,44 @@ class FinanceController {
 
   void _refresh() => invalidateFinancialData(_ref);
 
+  /// Appends one audit-trail entry. Called after a mutation succeeds, so a
+  /// failed operation (e.g. deleting a still-referenced account) never logs.
+  Future<void> _log({
+    required LogModule module,
+    required LogAction action,
+    required String entityName,
+    String? detail,
+  }) {
+    return _ref.read(activityLogRepositoryProvider).add(
+          module: module,
+          action: action,
+          entityName: entityName,
+          detail: detail,
+        );
+  }
+
+  String _money(double value) => Formatters.currency(value);
+
+  String _diff(String before, String after) => '$before → $after';
+
+  Future<String> _categoryName(String? categoryId) async {
+    if (categoryId == null) return 'Kategori';
+    final categories = await _ref.read(categoryRepositoryProvider).getAll();
+    return categories.firstWhereOrNull((c) => c.id == categoryId)?.name ??
+        'Kategori';
+  }
+
+  /// Transactions are logged under their category name (matching the user's
+  /// example `UPDATE | Transaksi | Makanan`); transfers have no category so
+  /// they fall back to the transaction title.
+  Future<String> _transactionEntityName(TransactionRecord record) async {
+    final categoryId = record.categoryId;
+    if (categoryId == null) return record.title;
+    final categories = await _ref.read(categoryRepositoryProvider).getAll();
+    return categories.firstWhereOrNull((c) => c.id == categoryId)?.name ??
+        record.title;
+  }
+
   Future<Account> createAccount({
     required String name,
     required AccountType type,
@@ -39,17 +80,51 @@ class FinanceController {
           iconCodePoint: iconCodePoint,
           colorValue: colorValue,
         );
+    await _log(
+      module: LogModule.rekening,
+      action: LogAction.create,
+      entityName: account.name,
+      detail: 'Saldo awal ${_money(account.initialBalance)}',
+    );
     _refresh();
     return account;
   }
 
   Future<void> saveAccount(Account account) async {
+    final before = (await _ref.read(accountRepositoryProvider).getAll())
+        .firstWhereOrNull((a) => a.id == account.id);
     await _ref.read(accountRepositoryProvider).save(account);
+    await _log(
+      module: LogModule.rekening,
+      action: LogAction.update,
+      entityName: account.name,
+      detail: _accountDiff(before, account),
+    );
     _refresh();
   }
 
+  String? _accountDiff(Account? before, Account after) {
+    if (before == null) return null;
+    final parts = <String>[];
+    if (before.name != after.name) {
+      parts.add(_diff('"${before.name}"', '"${after.name}"'));
+    }
+    if (before.initialBalance != after.initialBalance) {
+      parts.add(_diff(
+          _money(before.initialBalance), _money(after.initialBalance)));
+    }
+    return parts.isEmpty ? null : parts.join(', ');
+  }
+
   Future<void> deleteAccount(String id) async {
+    final target = (await _ref.read(accountRepositoryProvider).getAll())
+        .firstWhereOrNull((a) => a.id == id);
     await _ref.read(accountRepositoryProvider).delete(id);
+    await _log(
+      module: LogModule.rekening,
+      action: LogAction.delete,
+      entityName: target?.name ?? 'Rekening',
+    );
     _refresh();
   }
 
@@ -59,30 +134,53 @@ class FinanceController {
     return account;
   }
 
-  Future<void> createCategory({
+  Future<Category> createCategory({
     required String name,
     required CategoryKind kind,
     required int iconCodePoint,
     required int colorValue,
   }) async {
-    await _ref.read(categoryRepositoryProvider).create(
+    final category = await _ref.read(categoryRepositoryProvider).create(
           name: name,
           kind: kind,
           iconCodePoint: iconCodePoint,
           colorValue: colorValue,
         );
+    await _log(
+      module: LogModule.kategori,
+      action: LogAction.create,
+      entityName: category.name,
+    );
     _refresh();
+    return category;
   }
 
   Future<void> saveCategory(Category category) async {
+    final before = (await _ref.read(categoryRepositoryProvider).getAll())
+        .firstWhereOrNull((c) => c.id == category.id);
     await _ref.read(categoryRepositoryProvider).save(category);
+    await _log(
+      module: LogModule.kategori,
+      action: LogAction.update,
+      entityName: category.name,
+      detail: before != null && before.name != category.name
+          ? _diff('"${before.name}"', '"${category.name}"')
+          : null,
+    );
     _refresh();
   }
 
   Future<void> deleteCategory(String id, {String? reassignTo}) async {
+    final target = (await _ref.read(categoryRepositoryProvider).getAll())
+        .firstWhereOrNull((c) => c.id == id);
     await _ref
         .read(categoryRepositoryProvider)
         .delete(id, reassignTo: reassignTo);
+    await _log(
+      module: LogModule.kategori,
+      action: LogAction.delete,
+      entityName: target?.name ?? 'Kategori',
+    );
     _refresh();
   }
 
@@ -90,6 +188,12 @@ class FinanceController {
     final record = await _ref
         .read(transactionRepositoryProvider)
         .add(draft, allowNegativeBalance: _allowNegative);
+    await _log(
+      module: LogModule.transaksi,
+      action: LogAction.create,
+      entityName: await _transactionEntityName(record),
+      detail: _money(record.amount),
+    );
     _refresh();
     return record;
   }
@@ -120,15 +224,35 @@ class FinanceController {
     String id,
     TransactionDraft draft,
   ) async {
+    final before =
+        await _ref.read(transactionRepositoryProvider).findById(id);
     final record = await _ref
         .read(transactionRepositoryProvider)
         .update(id, draft, allowNegativeBalance: _allowNegative);
+    await _log(
+      module: LogModule.transaksi,
+      action: LogAction.update,
+      entityName: await _transactionEntityName(record),
+      detail: before != null && before.amount != record.amount
+          ? _diff(_money(before.amount), _money(record.amount))
+          : null,
+    );
     _refresh();
     return record;
   }
 
   Future<void> deleteTransaction(String id) async {
+    final target =
+        await _ref.read(transactionRepositoryProvider).findById(id);
     await _ref.read(transactionRepositoryProvider).delete(id);
+    await _log(
+      module: LogModule.transaksi,
+      action: LogAction.delete,
+      entityName: target != null
+          ? await _transactionEntityName(target)
+          : 'Transaksi',
+      detail: target != null ? _money(target.amount) : null,
+    );
     _refresh();
   }
 
@@ -138,22 +262,46 @@ class FinanceController {
     required int year,
     required int month,
   }) async {
-    await _ref.read(budgetRepositoryProvider).create(
+    final budget = await _ref.read(budgetRepositoryProvider).create(
           categoryId: categoryId,
           amount: amount,
           year: year,
           month: month,
         );
+    await _log(
+      module: LogModule.budget,
+      action: LogAction.create,
+      entityName: await _categoryName(budget.categoryId),
+      detail: _money(budget.amount),
+    );
     _refresh();
   }
 
   Future<void> saveBudget(Budget budget) async {
+    final before = (await _ref.read(budgetRepositoryProvider).getAll())
+        .firstWhereOrNull((b) => b.id == budget.id);
     await _ref.read(budgetRepositoryProvider).save(budget);
+    await _log(
+      module: LogModule.budget,
+      action: LogAction.update,
+      entityName: await _categoryName(budget.categoryId),
+      detail: before != null && before.amount != budget.amount
+          ? _diff(_money(before.amount), _money(budget.amount))
+          : null,
+    );
     _refresh();
   }
 
   Future<void> deleteBudget(String id) async {
+    final target = (await _ref.read(budgetRepositoryProvider).getAll())
+        .firstWhereOrNull((b) => b.id == id);
     await _ref.read(budgetRepositoryProvider).delete(id);
+    await _log(
+      module: LogModule.budget,
+      action: LogAction.delete,
+      entityName:
+          target != null ? await _categoryName(target.categoryId) : 'Budget',
+    );
     _refresh();
   }
 

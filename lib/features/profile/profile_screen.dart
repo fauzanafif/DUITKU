@@ -110,6 +110,12 @@ class ProfileScreen extends ConsumerWidget {
             subtitle: 'Ekspor JSON/CSV, impor data',
             onTap: () => context.push('/settings/backup'),
           ),
+          _MenuTile(
+            icon: Icons.history,
+            title: 'Log Aktivitas',
+            subtitle: 'Riwayat perubahan data',
+            onTap: () => context.push('/activity-log'),
+          ),
           const SizedBox(height: 20),
           Center(
             child: Text(

@@ -1,4 +1,5 @@
 import 'package:duitku/data/models/account.dart';
+import 'package:duitku/data/models/activity_log_entry.dart';
 import 'package:duitku/data/models/allowance_limit.dart';
 import 'package:duitku/data/models/app_settings.dart';
 import 'package:duitku/data/models/budget.dart';
@@ -49,6 +50,13 @@ abstract class DuitkuDatabase {
   Future<AppSettings> readSettings();
   Future<void> writeSettings(AppSettings settings);
 
-  /// Wipes every collection except settings. Used by the restore flow.
+  /// Activity Log is an append-only audit trail. It is deliberately absent
+  /// from [clearFinancialData] and from the backup JSON so the history is
+  /// never lost, whatever happens to the financial data.
+  Future<List<ActivityLogEntry>> readActivityLogs();
+  Future<void> writeActivityLog(ActivityLogEntry entry);
+
+  /// Wipes every collection except settings and the activity log.
+  /// Used by the restore flow.
   Future<void> clearFinancialData();
 }

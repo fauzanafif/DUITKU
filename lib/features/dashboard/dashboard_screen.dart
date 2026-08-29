@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,7 @@ import 'package:duitku/core/providers/finance_snapshot.dart';
 import 'package:duitku/core/providers/providers.dart';
 import 'package:duitku/core/theme/app_theme.dart';
 import 'package:duitku/core/utils/formatters.dart';
+import 'package:duitku/data/models/category.dart';
 import 'package:duitku/data/models/transaction.dart';
 import 'package:duitku/features/shell/home_shell.dart';
 import 'package:duitku/widgets/section_card.dart';
@@ -83,6 +85,32 @@ class DashboardScreen extends ConsumerWidget {
                   if (income > 0 || expense > 0) ...[
                     const SizedBox(height: 16),
                     _HealthScoreCard(score: healthScore),
+                  ],
+                  if (income > 0 || expense > 0) ...[
+                    const SizedBox(height: 20),
+                    const SectionHeader(title: 'Pemasukan & Pengeluaran'),
+                    SectionCard(
+                      child: SizedBox(
+                        height: 160,
+                        child: _IncomeExpenseChart(
+                            income: income, expense: expense),
+                      ),
+                    ),
+                  ],
+                  if (monthlyBudgetStatuses.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    SectionHeader(
+                      title: 'Ringkasan Budget',
+                      action: TextButton(
+                        onPressed: () => context.push('/budget'),
+                        child: const Text('Lihat semua'),
+                      ),
+                    ),
+                    _BudgetSummaryCard(
+                      statuses: monthlyBudgetStatuses,
+                      categoriesById: snapshot.categoriesById,
+                      currencyCode: ref.settings.currencyCode,
+                    ),
                   ],
                   if (activeDebts.isNotEmpty || dueRecurring.isNotEmpty) ...[
                     const SizedBox(height: 16),
@@ -490,6 +518,142 @@ class _ScoreFactorRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _IncomeExpenseChart extends StatelessWidget {
+  const _IncomeExpenseChart({required this.income, required this.expense});
+
+  final double income;
+  final double expense;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxValue = income > expense ? income : expense;
+    if (maxValue == 0) {
+      return const Center(child: Text('Belum ada data untuk ditampilkan.'));
+    }
+
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: maxValue * 1.2,
+        gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          leftTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) => Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  value.toInt() == 0 ? 'Pemasukan' : 'Pengeluaran',
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+          ),
+        ),
+        barTouchData: BarTouchData(
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipItem: (group, groupIndex, rod, rodIndex) =>
+                BarTooltipItem(
+              Formatters.compactCurrency(rod.toY),
+              const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ),
+        ),
+        barGroups: [
+          BarChartGroupData(x: 0, barRods: [
+            BarChartRodData(
+              toY: income,
+              color: AppColors.income,
+              width: 32,
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ]),
+          BarChartGroupData(x: 1, barRods: [
+            BarChartRodData(
+              toY: expense,
+              color: AppColors.expense,
+              width: 32,
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+class _BudgetSummaryCard extends StatelessWidget {
+  const _BudgetSummaryCard({
+    required this.statuses,
+    required this.categoriesById,
+    required this.currencyCode,
+  });
+
+  final List<BudgetStatus> statuses;
+  final Map<String, Category> categoriesById;
+  final String currencyCode;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = [...statuses]
+      ..sort((a, b) => b.ratio.compareTo(a.ratio));
+    final top = shown.take(3).toList();
+
+    return SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final status in top) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    categoriesById[status.budget.categoryId]?.name ??
+                        'Kategori terhapus',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Text(
+                  Formatters.percent(status.ratio),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: status.isOverBudget
+                        ? AppColors.expense
+                        : AppColors.income,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: status.ratio.clamp(0.0, 1.0),
+                minHeight: 8,
+                color: status.isOverBudget
+                    ? AppColors.expense
+                    : AppColors.income,
+                backgroundColor: (status.isOverBudget
+                        ? AppColors.expense
+                        : AppColors.income)
+                    .withValues(alpha: 0.15),
+              ),
+            ),
+            if (status != top.last) const SizedBox(height: 14),
+          ],
+        ],
+      ),
     );
   }
 }

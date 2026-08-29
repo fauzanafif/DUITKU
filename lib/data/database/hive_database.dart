@@ -4,6 +4,7 @@ import 'package:hive_ce_flutter/hive_flutter.dart';
 
 import 'package:duitku/data/database/duitku_database.dart';
 import 'package:duitku/data/models/account.dart';
+import 'package:duitku/data/models/activity_log_entry.dart';
 import 'package:duitku/data/models/allowance_limit.dart';
 import 'package:duitku/data/models/app_settings.dart';
 import 'package:duitku/data/models/budget.dart';
@@ -26,6 +27,7 @@ class HiveDatabase implements DuitkuDatabase {
   static const _debtsBox = 'duitku_debts';
   static const _recurringRulesBox = 'duitku_recurring_rules';
   static const _allowanceLimitsBox = 'duitku_allowance_limits';
+  static const _activityLogsBox = 'duitku_activity_logs';
   static const _settingsBox = 'duitku_settings';
   static const _settingsKey = 'settings';
 
@@ -37,6 +39,7 @@ class HiveDatabase implements DuitkuDatabase {
   late final Box<String> _debts;
   late final Box<String> _recurringRules;
   late final Box<String> _allowanceLimits;
+  late final Box<String> _activityLogs;
   late final Box<String> _settings;
 
   bool _initialized = false;
@@ -53,6 +56,7 @@ class HiveDatabase implements DuitkuDatabase {
     _debts = await Hive.openBox<String>(_debtsBox);
     _recurringRules = await Hive.openBox<String>(_recurringRulesBox);
     _allowanceLimits = await Hive.openBox<String>(_allowanceLimitsBox);
+    _activityLogs = await Hive.openBox<String>(_activityLogsBox);
     _settings = await Hive.openBox<String>(_settingsBox);
     _initialized = true;
   }
@@ -160,6 +164,14 @@ class HiveDatabase implements DuitkuDatabase {
 
   @override
   Future<void> deleteAllowanceLimit(String id) => _allowanceLimits.delete(id);
+
+  @override
+  Future<List<ActivityLogEntry>> readActivityLogs() async =>
+      _decodeAll(_activityLogs, ActivityLogEntry.fromJson);
+
+  @override
+  Future<void> writeActivityLog(ActivityLogEntry entry) =>
+      _activityLogs.put(entry.id, jsonEncode(entry.toJson()));
 
   @override
   Future<AppSettings> readSettings() async {

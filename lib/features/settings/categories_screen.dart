@@ -91,6 +91,27 @@ class CategoriesScreen extends ConsumerWidget {
     Category category,
     List<Category> all,
   ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Hapus kategori "${category.name}"?'),
+        content: const Text(
+          'Transaksi lama dengan kategori ini tidak akan terhapus.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
     final controller = ref.read(financeControllerProvider);
     try {
       await controller.deleteCategory(category.id);
